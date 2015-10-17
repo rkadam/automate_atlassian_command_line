@@ -16,7 +16,7 @@ pip install --editable .
 * Run Atlassian Command Line application as a module
 ```
 acl --base-url https://pongbot.atlassian.net --action 'update_general_configuration'
-acl --base-url https://pongbot.atlassian.net --userid raju.kadam@gmail.com --action 'update_global_color_scheme' --action 'update_general_configuration'
+acl --base-url https://pongbot.atlassian.net --userid myemail@email.com --action 'update_global_color_scheme' --action 'update_general_configuration'
 acl --base-url https://localhost:2990 --userid admin --password admin --action 'update_global_color_scheme'
 ```
 * Run as simple python program
