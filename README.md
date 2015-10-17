@@ -13,7 +13,7 @@ source acl_env/bin/activate
 pip install requests
 pip install selenium 
 ```
-* Install headless browser (PhantomJS)[http://phantomjs.org/download.html] if you like to.
+* Install headless browser [PhantomJS](http://phantomjs.org/download.html) if you like to.
 * Run Atlassian Command Line application
 ```
 python atlassian_command_line.py
