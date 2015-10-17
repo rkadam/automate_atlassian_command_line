@@ -8,6 +8,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 import click
+import random
 
 import time
 import sys
@@ -92,12 +93,13 @@ class WikiBrowser:
         general_config_url = new_base_url + "/admin/editgeneralconfig.action"
         browser.get(general_config_url)
         site_title = browser.find_element_by_id('siteTitle')
+        click.echo('Current title: %s' % site_title.get_attribute("value"))
         site_title.clear()
-        site_title.send_keys('Pongbot\'s confluence')
+        site_title.send_keys('Pongbot\'s confluence %s' % str(random.randint(1,10)))
+        click.echo('New title: %s' % site_title.get_attribute("value"))
         browser.find_element_by_id('confirm').click()
-        browser.quit()
 
-    def update_global_custom_colour_scheme(self, browser, new_base_url, new_color_scheme_file):
+    def update_global_color_scheme(self, browser, new_base_url, new_color_scheme_file):
         # Let's get to "View Colour Scheme Settings" screen (lookandfeel.action)
         custom_colour_scheme_url = new_base_url + "/admin/lookandfeel.action"
         browser.get(custom_colour_scheme_url)
@@ -121,7 +123,6 @@ class WikiBrowser:
             colour_element.send_keys(colour_value)
 
         browser.find_element_by_name("confirm").click()
-        browser.quit()
 
     def verify_admin_access(self):
         browser = self.browser
@@ -132,16 +133,27 @@ class WikiBrowser:
         except NoSuchElementException:
             return False
 
+    command_dictionary = {
+        'update_global_color_scheme': update_global_color_scheme,
+        'update_general_configuration': update_general_configuration
+    }
 
 if '__main__' == __name__:
-    #wiki_browser = WikiBrowser(Firefox)
-    wiki_browser = WikiBrowser(PhantomJS)
+    '''
+    wiki_browser = WikiBrowser(Firefox)
+    #wiki_browser = WikiBrowser(PhantomJS)
+
     # on premise Wiki
     #(browser, new_base_url) = wiki_browser.login('other', 'https://localhost:2990', 'admin', 'admin')
-    # On Demand, Atlassian.net wiki
-    #(browser, new_base_url) = wiki_browser.login('atlassian.net', 'https://example.atlassian.net', 'userid', 'password')
-    wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
-    #wiki_browser.update_general_configuration(browser,new_base_url)
+
+    #On Demand, Atlassian.net wiki
+    (browser, new_base_url) = wiki_browser.login('atlassian.net', 'https://example.atlassian.net', 'userid', 'password')
+    wiki_browser.update_global_color_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
+    wiki_browser.update_general_configuration(browser, new_base_url)
+
+    browser.close()
+    browser.quit()
+    '''
 
 
 @click.command()
@@ -149,9 +161,10 @@ if '__main__' == __name__:
               default='atlassian.net',
               help='Enter type of application that you want to automate.')
 @click.option('--base-url', default='https://pongbot.atlassian.net', help="Enter base URL for Atlassian application")
-@click.argument('userid')
-@click.argument('password')
-def start(app_type, base_url, userid, password):
+@click.option('--userid', prompt='Enter your userid')
+@click.option('--password', prompt='Enter your credentials', hide_input=True, confirmation_prompt=True)
+@click.option('--action', multiple=True, default=['update_global_color_scheme'])
+def start(app_type, base_url, userid, password, action):
     """
     Atlassian Command Line aka ACL - Automate the tasks that you can not!
     :param: app_type, base-url, userid, password
@@ -162,7 +175,24 @@ def start(app_type, base_url, userid, password):
     :return:
     """
     click.echo('Automating application located at %s' % base_url)
-    #wiki_browser = WikiBrowser(Firefox)
-    wiki_browser = WikiBrowser(PhantomJS)
+    click.echo()
+
+    wiki_browser = WikiBrowser(Firefox)
+    #wiki_browser = WikiBrowser(PhantomJS)
     (browser, new_base_url) = wiki_browser.login(app_type, base_url, userid, password)
-    wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
+    #wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
+
+    for act in action:
+        click.echo('Executing command: %s' % act)
+        if act == 'update_global_color_scheme':
+            wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
+            #wiki_browser.update_global_color_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
+
+        if act == 'update_general_configuration':
+            wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url)
+            #wiki_browser.update_general_configuration(browser, new_base_url)
+
+        click.echo()
+
+    browser.close()
+    browser.quit()

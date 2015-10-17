@@ -13,7 +13,14 @@ source acl_env/bin/activate
 ```
 pip install --editable .
 ```
-* Run Atlassian Command Line application
+* Run Atlassian Command Line application as a module
 ```
-acl 'rkadam' 'mypassword' --app-type 'atlassian.net' --baes-url 'https://pongbot.atlassian.net'  
+acl --base-url https://pongbot.atlassian.net --action 'update_general_configuration'
+acl --base-url https://pongbot.atlassian.net --userid raju.kadam@gmail.com --action 'update_global_color_scheme' --action 'update_general_configuration'
+acl --base-url https://localhost:2990 --userid admin --password admin --action 'update_global_color_scheme'
+```
+* Run as simple python program
+```
+* Make sure you uncomment section present under "if '__main__' == __name__:"
+* Add / Remove functions as necessary perform desired action
 ```
