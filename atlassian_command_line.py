@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+import click
 
 import time
 import sys
@@ -141,3 +142,27 @@ if '__main__' == __name__:
     #(browser, new_base_url) = wiki_browser.login('atlassian.net', 'https://example.atlassian.net', 'userid', 'password')
     wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
     #wiki_browser.update_general_configuration(browser,new_base_url)
+
+
+@click.command()
+@click.option('--app-type', type=click.Choice(['atlassian.net', 'other']),
+              default='atlassian.net',
+              help='Enter type of application that you want to automate.')
+@click.option('--base-url', default='https://pongbot.atlassian.net', help="Enter base URL for Atlassian application")
+@click.argument('userid')
+@click.argument('password')
+def start(app_type, base_url, userid, password):
+    """
+    Atlassian Command Line aka ACL - Automate the tasks that you can not!
+    :param: app_type, base-url, userid, password
+    :return:
+    """
+    """
+    :param string:
+    :return:
+    """
+    click.echo('Automating application located at %s' % base_url)
+    #wiki_browser = WikiBrowser(Firefox)
+    wiki_browser = WikiBrowser(PhantomJS)
+    (browser, new_base_url) = wiki_browser.login(app_type, base_url, userid, password)
+    wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
