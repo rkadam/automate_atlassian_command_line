@@ -58,8 +58,8 @@ class WikiBrowser:
 
                 # Verify that we are on Administration Console.
                 # This will confirm, we are logged in as Global Administrator.
-                print browser.find_element_by_class_name('admin-heading').text
-                print browser.find_element_by_class_name('admin-subtitle').text
+                assert browser.find_element_by_class_name('admin-heading').text == 'Administration Console'
+                assert browser.find_element_by_class_name('admin-subtitle').text == 'The Administration Console is the interface for managing and maintaining Confluence.'
 
             except NoSuchElementException:
                 print "Unable to login to Wiki Application, exiting."
@@ -139,5 +139,5 @@ if '__main__' == __name__:
     #(browser, new_base_url) = wiki_browser.login('other', 'https://localhost:2990', 'admin', 'admin')
     # On Demand, Atlassian.net wiki
     #(browser, new_base_url) = wiki_browser.login('atlassian.net', 'https://example.atlassian.net', 'userid', 'password')
-    wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
+    wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
     #wiki_browser.update_general_configuration(browser,new_base_url)
