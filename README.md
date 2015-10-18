@@ -1,5 +1,5 @@
 # Atlassian Command Line aka ACL
-Entry to Atlassian Codegeist Hackathon 2015: http://devpost.com/software/atlassian-command-line
+Entry to [Atlassian Codegeist Hackathon 2015](http://codegeist.devpost.com/): http://devpost.com/software/atlassian-command-line
 
 # Usage instructions
 ## How to use this Add On
