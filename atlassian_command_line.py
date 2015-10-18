@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import Select
 
 import xml.etree.ElementTree as ET
 import click
@@ -16,10 +17,129 @@ import time
 import sys
 
 import requests
+import json
+
 # Disable warnings about not verifying SSL access.
 requests.packages.urllib3.disable_warnings()
 
 header_params = {"content-type": "application/json"}
+
+class JIRABrowser:
+    def __init__(self, driver):
+        self.driver = driver
+        self.browser = None
+
+    def connect(self):
+        self.browser = self.driver()
+        self.browser.set_window_size(1120, 550)
+
+    def get_login_elements(self, login_to, base_url):
+
+        if login_to == 'atlassian.net':
+            return {
+                    'param_user': 'username',
+                    'param_password': 'password',
+                    'param_submit': 'login',
+                    'param_login_url': base_url + "/login",
+                    'param_new_base_url': base_url
+            }
+
+        return {
+                'param_user': 'os_username',
+                'param_password': 'os_password',
+                'param_submit': 'login',
+                'param_login_url': base_url + '/login.jsp',
+                'param_new_base_url': base_url
+                }
+
+    # noinspection PyBroadException
+    def login(self, login_type, base_url, userid, password):
+        try:
+            if self.browser is None:
+                self.connect()
+        except:
+            print "Unable to create Selenium Driver Instance."
+            sys.exit(0)
+
+        browser = self.browser
+        login_elem_dict = self.get_login_elements(login_type, base_url)
+        #print login_elem_dict
+        new_base_url = None
+
+        if not self.verify_admin_access():
+            try:
+                browser.get(login_elem_dict['param_login_url'])
+                browser.implicitly_wait(1)
+                os_name = browser.find_element_by_id(login_elem_dict['param_user'])
+                os_name.clear()
+                os_name.send_keys(userid)
+
+                os_password = browser.find_element_by_id(login_elem_dict['param_password'])
+                os_password.clear()
+                os_password.send_keys(password)
+
+                browser.find_element_by_id(login_elem_dict['param_submit']).click()
+                time.sleep(1)
+
+                # On Premise Atlassian application usually asks Authentication for one more time.
+                new_base_url = login_elem_dict['param_new_base_url']
+                browser.get(new_base_url + "/secure/admin/ViewApplicationProperties.jspa")
+                if login_type == 'other':
+                    browser.find_element_by_id('login-form-authenticatePassword').send_keys(password)
+                    browser.find_element_by_id('login-form-submit').click()
+
+                # Verify that we are on Administration Console.
+                # This will confirm, we are logged in as a Global Administrator.
+                assert browser.find_element_by_id('admin-search-link').text == 'Search JIRA admin'
+
+            except NoSuchElementException:
+                print "Unable to login to JIRA Application, exiting."
+                browser.close()
+                browser.quit()
+                sys.exit(0)
+
+        return browser, new_base_url
+
+    def verify_admin_access(self):
+        browser = self.browser
+        try:
+            browser.implicitly_wait(1)
+            browser.find_element_by_id("system-admin-menu")
+            return True
+        except NoSuchElementException:
+            return False
+
+    def get_jira_project_list(self, base_url, userid, password):
+        jira_project_list_rest_url = base_url + "/rest/api/2/project"
+        result = requests.get(jira_project_list_rest_url,  headers=header_params, auth=(userid, password), verify=False)
+        result.raise_for_status()
+
+        result_len = len(result.json())
+
+        project_id_dict = {}
+        for i in range(0, result_len):
+            project_id_dict[result.json()[i]['key']] = result.json()[i]['id']
+            #click.echo(result.json()[i]['key'] + ":" + result.json()[i]['id'])
+
+        return project_id_dict
+
+    def disable_project_notification_schemes(self, browser, base_url, userid, password):
+        project_notification_url = base_url + '/secure/project/SelectProjectScheme!default.jspa?projectId=%s'
+
+        project_dict = self.get_jira_project_list(base_url, userid, password)
+        for project_key, project_id in project_dict.iteritems():
+            browser.get(project_notification_url % project_id)
+            scheme_dropdown_element = Select(browser.find_element_by_id('schemeIds_select'))
+            current_selected_option = scheme_dropdown_element.first_selected_option
+            #click.echo(current_selected_option.text)
+            if current_selected_option.text != 'None':
+                scheme_dropdown_element.select_by_visible_text('None')
+                browser.find_element_by_id('associate_submit').click()
+                click.echo('Project:%s Notification Scheme set to None' % project_key)
+
+    command_dictionary = {
+        'disable_project_notification_schemes': disable_project_notification_schemes
+    }
 
 
 class WikiBrowser:
@@ -68,7 +188,7 @@ class WikiBrowser:
                     browser.find_element_by_id('authenticateButton').click()
 
                 # Verify that we are on Administration Console.
-                # This will confirm, we are logged in as Global Administrator.
+                # This will confirm, we are logged in as a Global Administrator.
                 assert browser.find_element_by_class_name('admin-heading').text == 'Administration Console'
                 assert browser.find_element_by_class_name('admin-subtitle').text == 'The Administration Console is the interface for managing and maintaining Confluence.'
 
@@ -77,7 +197,7 @@ class WikiBrowser:
                 browser.close()
                 sys.exit(0)
 
-        return browser,new_base_url
+        return browser, new_base_url
 
     def get_login_elements(self, login_to, base_url):
 
@@ -185,7 +305,6 @@ class WikiBrowser:
         'update_wiki_spaces_color_scheme': update_wiki_spaces_color_scheme
     }
 
-
 if '__main__' == __name__:
     '''
     wiki_browser = WikiBrowser(Firefox)
@@ -231,6 +350,8 @@ def start(app_type, app_name, browser_name, base_url, userid, password, action):
     :return:
     """
     click.echo()
+    # Remove forward slash from user if user entered in base_url
+    base_url = base_url.rstrip('/')
     click.echo('Automating application located at %s' % base_url)
     click.echo()
 
@@ -246,7 +367,7 @@ def start(app_type, app_name, browser_name, base_url, userid, password, action):
         #wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
 
         for act in action:
-            click.echo('Executing command: %s' % act)
+            click.echo('Executing Confluence command: %s' % act)
             if act == 'update_global_color_scheme':
                 wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
                 #wiki_browser.update_global_color_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
@@ -260,6 +381,23 @@ def start(app_type, app_name, browser_name, base_url, userid, password, action):
                 #wiki_browser.update_wiki_spaces_color_scheme(browser, new_base_url, userid, password)
 
             click.echo()
+
+        browser.close()
+        browser.quit()
+
+    if app_name == 'JIRA':
+        jira_browser = None
+        if browser_name == 'Firefox':
+            jira_browser = JIRABrowser(Firefox)
+        else:
+            jira_browser = JIRABrowser(PhantomJS)
+
+        (browser, new_base_url) = jira_browser.login(app_type, base_url, userid, password)
+
+        for act in action:
+            click.echo('Executing JIRA command: %s' % act)
+            if act == 'disable_project_notification_schemes':
+                jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, userid, password)
 
         browser.close()
         browser.quit()

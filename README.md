@@ -38,8 +38,8 @@ This will provide detail information on all parameters available and how to use 
 ```
 
 ```
-- To disable all JIRA project notifications
-> acl --app-type other --app-name JIRA --base-url https://example.com/jira --userid admin --password admin --action 'disable_all_project_notifications'
+- Automate disabling notification schemes for all JIRA projects
+> acl --app-type 'atlassian.net' --base-url https://pongbot.atlassian.net --userid admin --action 'disable_project_notification_schemes' --app-name JIRA --password <password> --browser-name PhantomJS
 ```
 
 **Notes**: 
