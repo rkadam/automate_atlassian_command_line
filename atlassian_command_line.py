@@ -137,7 +137,7 @@ class WikiBrowser:
         spaces = []
 
         space_list_rest_url = base_url + ("/rest/prototype/1/space?max-results=10000&type=%s" % space_type)
-        click.echo(space_list_rest_url)
+        #click.echo(space_list_rest_url)
         result = requests.get(space_list_rest_url,  headers=header_params, auth=(userid, password), verify=False)
         result.raise_for_status()
 
@@ -157,7 +157,7 @@ class WikiBrowser:
         # "personal" will return only personal wiki spaces
         # "all" will return all wiki spaces available.
         space_keys = self.get_wiki_space_list("global", base_url, userid, password)
-        click.echo(space_keys)
+        #click.echo(space_keys)
 
         # if needed, Update color scheme for each wiki space
         for key in space_keys:
@@ -207,44 +207,59 @@ if '__main__' == __name__:
 @click.command()
 @click.option('--app-type', type=click.Choice(['atlassian.net', 'other']),
               default='atlassian.net',
-              help='Enter type of application that you want to automate.')
-@click.option('--base-url', default='https://pongbot.atlassian.net', help="Enter base URL for Atlassian application")
-@click.option('--userid', prompt='Enter your userid')
+              help='Enter type of application that you want to automate. ->Default: atlassian.net<-')
+@click.option('--app-name', type=click.Choice(['Confluence', 'JIRA', 'Bitbucket Server']),
+              default='Confluence',
+              help='Enter Atlassian Application that you want to automate. ->Default: Confluence<-')
+@click.option('--browser-name', type=click.Choice(['Firefox', 'PhantomJS']),
+              default='Firefox',
+              help='Enter Browser that you would like to use. For cronjobs, you need to use PhantomJS. ->Default: Firefox<-')
+@click.option('--base-url', default='https://pongbot.atlassian.net', help="Enter base URL for Atlassian application. ->Default: https://pongbot.atlassian.net<-")
+@click.option('--userid', prompt='Enter Administrator Userid', help="Provide userid with Application Administration permissions")
 @click.option('--password', prompt='Enter your credentials', hide_input=True, confirmation_prompt=True)
-@click.option('--action', multiple=True, default=['update_global_color_scheme'])
-def start(app_type, base_url, userid, password, action):
+@click.option('--action', '-a', multiple=True,
+              help="Available actions:                            Wiki -> 'update_global_color_scheme', 'update_general_configuration', 'update_wiki_spaces_color_scheme' "
+                   "              JIRA -> 'check_mail_queue_status', 'disable_all_project_notifications'                  "
+                   "Bitbucket Server -> 'check_ldap_sync_status'")
+def start(app_type, app_name, browser_name, base_url, userid, password, action):
     """
     Atlassian Command Line aka ACL - Automate the tasks that you can not!
-    :param: app_type, base_url, userid, password, action
-    :return:
+
     """
     """
     :param string:
     :return:
     """
+    click.echo()
     click.echo('Automating application located at %s' % base_url)
     click.echo()
 
-    #wiki_browser = WikiBrowser(Firefox)
-    wiki_browser = WikiBrowser(PhantomJS)
-    (browser, new_base_url) = wiki_browser.login(app_type, base_url, userid, password)
-    #wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
+    if app_name == 'Confluence':
 
-    for act in action:
-        click.echo('Executing command: %s' % act)
-        if act == 'update_global_color_scheme':
-            wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
-            #wiki_browser.update_global_color_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
+        wiki_browser = None
 
-        if act == 'update_general_configuration':
-            wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url)
-            #wiki_browser.update_general_configuration(browser, new_base_url)
+        if browser_name == 'Firefox':
+            wiki_browser = WikiBrowser(Firefox)
+        else:
+            wiki_browser = WikiBrowser(PhantomJS)
+        (browser, new_base_url) = wiki_browser.login(app_type, base_url, userid, password)
+        #wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
 
-        if act == 'update_wiki_spaces_color_scheme':
-            wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, userid, password)
-            #wiki_browser.update_wiki_spaces_color_scheme(browser, new_base_url, userid, password)
+        for act in action:
+            click.echo('Executing command: %s' % act)
+            if act == 'update_global_color_scheme':
+                wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
+                #wiki_browser.update_global_color_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
 
-        click.echo()
+            if act == 'update_general_configuration':
+                wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url)
+                #wiki_browser.update_general_configuration(browser, new_base_url)
 
-    browser.close()
-    browser.quit()
+            if act == 'update_wiki_spaces_color_scheme':
+                wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, userid, password)
+                #wiki_browser.update_wiki_spaces_color_scheme(browser, new_base_url, userid, password)
+
+            click.echo()
+
+        browser.close()
+        browser.quit()
