@@ -41,7 +41,10 @@ This will provide detail information on all parameters available and how to use 
 - Automate disabling notification schemes for all JIRA projects
 > acl --app-type 'atlassian.net' --base-url https://pongbot.atlassian.net --userid admin --action 'disable_project_notification_schemes' --app-name JIRA --password <password> --browser-name PhantomJS
 ```
-
+```
+- Automate JIRA Outgoing Mail Queue check
+> acl --app-type 'atlassian.net' --base-url https://pongbot.atlassian.net --userid admin --app-name JIRA --password 'password' --browser-name PhantomJS --action 'check_jira_mail_queue_status' --mail_threshold_limit 100
+```
 **Notes**: 
 >* Uses _config/wiki_global_custom_colour_scheme.default_ as color scheme file input. Update colors as required.
 > * If userid and password are not entered from command line, application will prompt for these values before start of each run.

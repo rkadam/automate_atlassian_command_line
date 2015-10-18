@@ -45,9 +45,9 @@ class JIRABrowser:
             }
 
         return {
-                'param_user': 'os_username',
-                'param_password': 'os_password',
-                'param_submit': 'login',
+                'param_user': 'login-form-username',
+                'param_password': 'login-form-password',
+                'param_submit': 'login-form-submit',
                 'param_login_url': base_url + '/login.jsp',
                 'param_new_base_url': base_url
                 }
@@ -80,6 +80,8 @@ class JIRABrowser:
 
                 browser.find_element_by_id(login_elem_dict['param_submit']).click()
                 time.sleep(1)
+
+                #click.echo('Login as Admin user')
 
                 # On Premise Atlassian application usually asks Authentication for one more time.
                 new_base_url = login_elem_dict['param_new_base_url']
@@ -131,14 +133,27 @@ class JIRABrowser:
             browser.get(project_notification_url % project_id)
             scheme_dropdown_element = Select(browser.find_element_by_id('schemeIds_select'))
             current_selected_option = scheme_dropdown_element.first_selected_option
-            #click.echo(current_selected_option.text)
-            if current_selected_option.text != 'None':
+            current_notification_scheme_name = current_selected_option.text.strip()
+            if current_notification_scheme_name != 'None':
                 scheme_dropdown_element.select_by_visible_text('None')
                 browser.find_element_by_id('associate_submit').click()
-                click.echo('Project:%s Notification Scheme set to None' % project_key)
+                click.echo('For Project "%s", Notification Scheme changed from "%s" to None' % (project_key, current_notification_scheme_name))
+
+    def check_jira_mail_queue_status (self, browser, base_url, mail_threashold_limit):
+        mail_queue_url = base_url + '/secure/admin/MailQueueAdmin!default.jspa'
+
+        # Visit Mail Queue page
+        browser.get(mail_queue_url)
+        current_queue_status_text = browser.find_element_by_class_name('jiraformbody').text
+        current_email_in_queue_count = current_queue_status_text.strip().split()[4]
+        if int(current_email_in_queue_count) > mail_threashold_limit:
+            # TODO: Send Email to Admins
+            click.echo('Emails Queued in JIRA: %s' % current_email_in_queue_count)
+            click.echo('Emails are piling in JIRA Mail queue. Please have a look at earliest')
 
     command_dictionary = {
-        'disable_project_notification_schemes': disable_project_notification_schemes
+        'disable_project_notification_schemes': disable_project_notification_schemes,
+        'check_jira_mail_queue_status': check_jira_mail_queue_status
     }
 
 
@@ -340,7 +355,8 @@ if '__main__' == __name__:
               help="Available actions:                            Wiki -> 'update_global_color_scheme', 'update_general_configuration', 'update_wiki_spaces_color_scheme' "
                    "              JIRA -> 'check_mail_queue_status', 'disable_all_project_notifications'                  "
                    "Bitbucket Server -> 'check_ldap_sync_status'")
-def start(app_type, app_name, browser_name, base_url, userid, password, action):
+@click.option('--mail_threshold_limit', default=0, help="If emails in queue are greater than this limit, ACL will alert user.")
+def start(app_type, app_name, browser_name, base_url, userid, password, action, mail_threshold_limit):
     """
     Atlassian Command Line aka ACL - Automate the tasks that you can not!
 
@@ -398,6 +414,9 @@ def start(app_type, app_name, browser_name, base_url, userid, password, action):
             click.echo('Executing JIRA command: %s' % act)
             if act == 'disable_project_notification_schemes':
                 jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, userid, password)
+
+            if act == 'check_jira_mail_queue_status':
+                jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, mail_threshold_limit)
 
         browser.close()
         browser.quit()
