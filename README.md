@@ -45,9 +45,3 @@ This will provide detail information on all parameters available and how to use 
 **Notes**: 
 >* Uses _config/wiki_global_custom_colour_scheme.default_ as color scheme file input. Update colors as required.
 > * If userid and password are not entered from command line, application will prompt for these values before start of each run.
-
-* Run as simple python program
-```
-* Make sure you uncomment section present under "if '__main__' == __name__:"
-* Add / Remove functions as necessary perform desired action
-```
