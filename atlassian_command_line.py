@@ -7,11 +7,20 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+
+import xml.etree.ElementTree as ET
 import click
 import random
 
 import time
 import sys
+
+import requests
+# Disable warnings about not verifying SSL access.
+requests.packages.urllib3.disable_warnings()
+
+header_params = {"content-type": "application/json"}
+
 
 class WikiBrowser:
     def __init__(self, driver):
@@ -124,6 +133,43 @@ class WikiBrowser:
 
         browser.find_element_by_name("confirm").click()
 
+    def get_wiki_space_list(self, space_type, base_url, userid, password):
+        spaces = []
+
+        space_list_rest_url = base_url + ("/rest/prototype/1/space?max-results=10000&type=%s" % space_type)
+        click.echo(space_list_rest_url)
+        result = requests.get(space_list_rest_url,  headers=header_params, auth=(userid, password), verify=False)
+        result.raise_for_status()
+
+        # REST api spits out response in XML format instead of JSON!
+        result_root = ET.fromstring(result.content)
+
+        # Get all "space" nodes
+        space_nodes = result_root.findall('space')
+        for node in space_nodes:
+            spaces.append(node.attrib['key'])
+
+        return spaces
+
+    def update_wiki_spaces_color_scheme(self, browser, base_url, userid, password):
+        # This function will update color scheme for all wiki spaces to global color scheme.
+        # "global" will return only team wiki spaces
+        # "personal" will return only personal wiki spaces
+        # "all" will return all wiki spaces available.
+        space_keys = self.get_wiki_space_list("global", base_url, userid, password)
+        click.echo(space_keys)
+
+        # if needed, Update color scheme for each wiki space
+        for key in space_keys:
+            browser.get(base_url + "/spaces/lookandfeel.action?key=" + key)
+            edit_button = browser.find_element_by_id('edit')
+            if edit_button.get_attribute('name') == 'global':
+                click.echo("Global color scheme is now activated for Wiki Space %s" % key)
+                edit_button.click()
+                #time.sleep(1)
+            else:
+                click.echo("Global color scheme is already selected for space: %s" % key)
+
     def verify_admin_access(self):
         browser = self.browser
         try:
@@ -135,8 +181,10 @@ class WikiBrowser:
 
     command_dictionary = {
         'update_global_color_scheme': update_global_color_scheme,
-        'update_general_configuration': update_general_configuration
+        'update_general_configuration': update_general_configuration,
+        'update_wiki_spaces_color_scheme': update_wiki_spaces_color_scheme
     }
+
 
 if '__main__' == __name__:
     '''
@@ -167,7 +215,7 @@ if '__main__' == __name__:
 def start(app_type, base_url, userid, password, action):
     """
     Atlassian Command Line aka ACL - Automate the tasks that you can not!
-    :param: app_type, base-url, userid, password
+    :param: app_type, base_url, userid, password, action
     :return:
     """
     """
@@ -177,20 +225,24 @@ def start(app_type, base_url, userid, password, action):
     click.echo('Automating application located at %s' % base_url)
     click.echo()
 
-    wiki_browser = WikiBrowser(Firefox)
-    #wiki_browser = WikiBrowser(PhantomJS)
+    #wiki_browser = WikiBrowser(Firefox)
+    wiki_browser = WikiBrowser(PhantomJS)
     (browser, new_base_url) = wiki_browser.login(app_type, base_url, userid, password)
     #wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
 
     for act in action:
         click.echo('Executing command: %s' % act)
         if act == 'update_global_color_scheme':
-            wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
+            wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
             #wiki_browser.update_global_color_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
 
         if act == 'update_general_configuration':
             wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url)
             #wiki_browser.update_general_configuration(browser, new_base_url)
+
+        if act == 'update_wiki_spaces_color_scheme':
+            wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, userid, password)
+            #wiki_browser.update_wiki_spaces_color_scheme(browser, new_base_url, userid, password)
 
         click.echo()
 

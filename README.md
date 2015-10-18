@@ -16,8 +16,14 @@ pip install --editable .
 * Run Atlassian Command Line application as a module
 ```
 acl --base-url https://pongbot.atlassian.net --action 'update_general_configuration'
-acl --base-url https://pongbot.atlassian.net --userid myemail@email.com --action 'update_global_color_scheme' --action 'update_general_configuration'
-acl --base-url https://localhost:2990 --userid admin --password admin --action 'update_global_color_scheme'
+acl --app-type 'atlassian.net' --base-url https://pongbot.atlassian.net --userid admin --action 'update_global_color_scheme' --action 'update_general_configuration'
+
+-- To run other type of Atlassian application (on-premise for example)
+acl --app-type other --base-url https://localhost:2990 --userid admin --password admin --action 'update_global_color_scheme'
+
+-- To update color scheme of Confluence application
+-- Note: uses config/wiki_global_custom_colour_scheme.default as color scheme input. Update colors as required.
+ acl --app-type 'atlassian.net' --base-url https://pongbot.atlassian.net --action 'update_global_color_scheme' --action 'update_wiki_spaces_color_scheme' --action 'update_general_configuration' --userid <userid> --password <password>
 ```
 * Run as simple python program
 ```
