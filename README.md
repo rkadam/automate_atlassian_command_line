@@ -1,4 +1,4 @@
-# Automate the Atlassian from Command Line (ACL)
+# Automate Atlassian from Command Line (ACL)
 Entry to [Atlassian Codegeist Hackathon 2015](http://codegeist.devpost.com/): http://devpost.com/software/atlassian-command-line
 
 # Usage instructions
