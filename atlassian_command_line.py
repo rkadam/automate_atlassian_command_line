@@ -389,8 +389,8 @@ if '__main__' == __name__:
               default='Firefox',
               help='Enter Browser that you would like to use. For cronjobs, you need to use PhantomJS. ->Default: Firefox<-')
 @click.option('--base-url', default='https://pongbot.atlassian.net', help="Enter base URL for Atlassian application. ->Default: https://pongbot.atlassian.net<-")
-@click.option('--userid', prompt='Enter Administrator Userid', help="Provide userid with Application Administration permissions")
-@click.option('--password', prompt='Enter your credentials', hide_input=True, confirmation_prompt=True)
+@click.option('--userid', prompt='Enter Administrator Userid', help="Provide userid with Application Administration permissions. Use 'admin' to play with pongbot.atlassian.net")
+@click.option('--password', prompt='Enter your credentials', hide_input=True, confirmation_prompt=True, help="Use password 'pongbot' to play with test instance pongbot.atlassian.net")
 @click.option('--action', '-a', multiple=True,
               help="Available actions:                            Wiki -> 'update_global_color_scheme', 'update_general_configuration', 'update_wiki_spaces_color_scheme' "
                    "              JIRA -> 'check_mail_queue_status', 'disable_all_project_notifications'                  "
