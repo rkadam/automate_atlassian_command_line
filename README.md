@@ -14,6 +14,8 @@ Entry to [Atlassian Codegeist Hackathon 2015](http://codegeist.devpost.com/): ht
 > acl --help
 This will provide detail information on all parameters available and how to use ACL
 ```
+![Automate the Atlassian from Command Line -- Help Screen](http://challengepost-s3-challengepost.netdna-ssl.com/photos/production/software_photos/000/308/625/datas/gallery.jpg)
+
 * **Examples**
 
 ```
@@ -60,5 +62,3 @@ This will provide detail information on all parameters available and how to use 
 **Notes**: 
 >* Uses _config/wiki_global_custom_colour_scheme.default_ as color scheme file input. Update colors as required.
 > * If userid and password are not entered from command line, application will prompt for these values before start of each run.
-
-![Automate the Atlassian from Command Line -- Help Screen](http://challengepost-s3-challengepost.netdna-ssl.com/photos/production/software_photos/000/308/625/datas/gallery.jpg)
