@@ -6,8 +6,8 @@ Entry to [Atlassian Codegeist Hackathon 2015](http://codegeist.devpost.com/): ht
 * Clone source from [Atlassian Command Line](https://github.com/rkadam/atlassian_command_line) git repository
 * Install headless browser [PhantomJS](http://phantomjs.org/download.html) if you like to.
 * Install [Virtual Environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
-* create virtual environment for python 2.7+ _virtualenv -p /usr/bin/python2.7 venv_
-* Install "Atlassian Command Line" as a python module -> pip install --editable .
+* create virtual environment for python 2.7+ -> _virtualenv -p /usr/bin/python2.7 venv_
+* Install "Atlassian Command Line" as a python module -> _pip install --editable ._
 * _Run_ **Atlassian Command Line** from command line as follows:
 
 ```
