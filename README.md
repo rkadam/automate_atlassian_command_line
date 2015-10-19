@@ -38,12 +38,24 @@ This will provide detail information on all parameters available and how to use 
 ```
 
 ```
-- Automate disabling notification schemes for all JIRA projects
+- Automate act of disabling notification schemes for all JIRA projects
 > acl --app-type 'atlassian.net' --base-url https://pongbot.atlassian.net --userid admin --action 'disable_project_notification_schemes' --app-name JIRA --password <password> --browser-name PhantomJS
 ```
 ```
 - Automate JIRA Outgoing Mail Queue check
-> acl --app-type 'atlassian.net' --base-url https://pongbot.atlassian.net --userid admin --app-name JIRA --password 'password' --browser-name PhantomJS --action 'check_jira_mail_queue_status' --mail_threshold_limit 100
+> acl --app-type 'other' --base-url https://jira.example.com --userid admin --app-name JIRA --password 'password' --browser-name PhantomJS --action 'check_jira_mail_queue_status' --mail_threshold_limit 100
+```
+
+```
+- Automate JIRA LDAP Sync Status check and Outgoing mail queue check
+-   ACL will warn user if LDAP sync status time is greater than default LDAP Threshold limit (4 hours) and Mails in Mail queue are greater than default Mail threshold limit (100 emails)
+> acl --app-type 'other' --base-url https://jira.example.com --userid <admin> --app-name JIRA --password 'password' --browser-name PhantomJS --action 'check_jira_mail_queue_status' --action 'check_ldap_sync_status'
+```
+
+```
+- Automate JIRA LDAP Sync Status check and Outgoing mail queue check against given threshold values
+-   ACL will warn user if LDAP sync status time is greater than given LDAP Threshold limit (1 hour) and Mails in Mail queue are greater than given Mail threshold limit (50 emails)
+>acl --app-type 'other' --base-url https://jira.example.com --userid <admin> --app-name JIRA --password <password> --browser-name PhantomJS --action 'check_jira_mail_queue_status' --mail-threshold-limit 50 --action 'check_ldap_sync_status' --ldap-sync-threshold-limit 1
 ```
 **Notes**: 
 >* Uses _config/wiki_global_custom_colour_scheme.default_ as color scheme file input. Update colors as required.

@@ -14,6 +14,7 @@ import click
 import random
 
 import time
+import datetime
 import sys
 
 import requests
@@ -23,6 +24,16 @@ import json
 requests.packages.urllib3.disable_warnings()
 
 header_params = {"content-type": "application/json"}
+
+# TODO:
+# Current priority is to have working entry available for Codegeist participation.
+# Later we will use Composition to share the common methods and let individual classes do their distinct work.
+# Using Composition, we will keep all common functions such as connect(), get_login_elements(), login(),
+#   verify_admin_access(), check_ldap_sync_status() in *AtlassianBrowser* (it will be a new class).
+# And application specific methods such as
+#   disable_project_notification_schemes(), check_jira_mail_queue_status() will remain in *JIRABrowser*
+#   update_global_color_scheme(), update_general_configuration() and update_wiki_spaces_color_scheme() remain in *WikiBrowser*
+# Till that happens you will see little bit overlapping between all these classes.
 
 class JIRABrowser:
     def __init__(self, driver):
@@ -139,21 +150,50 @@ class JIRABrowser:
                 browser.find_element_by_id('associate_submit').click()
                 click.echo('For Project "%s", Notification Scheme changed from "%s" to None' % (project_key, current_notification_scheme_name))
 
-    def check_jira_mail_queue_status (self, browser, base_url, mail_threashold_limit):
+    def check_jira_mail_queue_status (self, browser, base_url, mail_threshold_limit):
         mail_queue_url = base_url + '/secure/admin/MailQueueAdmin!default.jspa'
 
         # Visit Mail Queue page
         browser.get(mail_queue_url)
         current_queue_status_text = browser.find_element_by_class_name('jiraformbody').text
         current_email_in_queue_count = current_queue_status_text.strip().split()[4]
-        if int(current_email_in_queue_count) > mail_threashold_limit:
+        if int(current_email_in_queue_count) > mail_threshold_limit:
             # TODO: Send Email to Admins
             click.echo('Emails Queued in JIRA: %s' % current_email_in_queue_count)
             click.echo('Emails are piling in JIRA Mail queue. Please have a look at earliest')
 
+    def check_ldap_sync_status(self, browser, base_url, ldap_sync_threshold_limit):
+        # If last LDAP sync happened more than ldap_sync_threshold_limit hours ago, warn JIRA Admin
+        ldap_sync_status_url = base_url + '/plugins/servlet/embedded-crowd/directories/list'
+        browser.get(ldap_sync_status_url)
+
+        # Get last successful SYNC time information. Example: Last synchronised at 7/16/15 9:52 AM (took 25s)
+        ldap_sync_status_string_aray = browser.find_element_by_class_name('sync-info').text.strip().split()
+        last_successful_sync_status_time = '%s %s %s' % (ldap_sync_status_string_aray[3], ldap_sync_status_string_aray[4], ldap_sync_status_string_aray[5])
+        click.echo('Last Successful Sync Status Time: %s' % last_successful_sync_status_time)
+
+        # Do arithmetic to find out how many hours before this sync happened.
+        last_sync_datetime = datetime.datetime.strptime(last_successful_sync_status_time, "%m/%d/%y %I:%M %p")
+        current_daytime = datetime.datetime.now()
+        time_delta = current_daytime - last_sync_datetime
+        hours, minutes, seconds = self.convert_timedelta(time_delta)
+        sync_status_message = 'Time elapsed since last LDAP sync: {} hour(s), {} minute(s)'.format(hours, minutes)
+        click.echo(sync_status_message)
+
+        if hours > ldap_sync_threshold_limit:
+            click.echo("Something is wrong with LDAP sync process. Please verify at your earliest your convenience.")
+
+    def convert_timedelta(self, duration):
+        days, seconds = duration.days, duration.seconds
+        hours = days * 24 + seconds // 3600
+        minutes = (seconds % 3600) // 60
+        seconds = (seconds % 60)
+        return hours, minutes, seconds
+
     command_dictionary = {
         'disable_project_notification_schemes': disable_project_notification_schemes,
-        'check_jira_mail_queue_status': check_jira_mail_queue_status
+        'check_jira_mail_queue_status': check_jira_mail_queue_status,
+        'check_ldap_sync_status': check_ldap_sync_status
     }
 
 
@@ -355,8 +395,9 @@ if '__main__' == __name__:
               help="Available actions:                            Wiki -> 'update_global_color_scheme', 'update_general_configuration', 'update_wiki_spaces_color_scheme' "
                    "              JIRA -> 'check_mail_queue_status', 'disable_all_project_notifications'                  "
                    "Bitbucket Server -> 'check_ldap_sync_status'")
-@click.option('--mail_threshold_limit', default=0, help="If emails in queue are greater than this limit, ACL will alert user.")
-def start(app_type, app_name, browser_name, base_url, userid, password, action, mail_threshold_limit):
+@click.option('--mail-threshold-limit', default=100, help="If emails in queue are greater than this limit, then ACL will alert user")
+@click.option('--ldap-sync-threshold-limit', default=4, help="If last LDAP sync happened more than given 'ldap_sync_threshold_limit' hours, then ACL will alert user")
+def start(app_type, app_name, browser_name, base_url, userid, password, action, mail_threshold_limit, ldap_sync_threshold_limit):
     """
     Atlassian Command Line aka ACL - Automate the tasks that you can not!
 
@@ -417,6 +458,11 @@ def start(app_type, app_name, browser_name, base_url, userid, password, action, 
 
             if act == 'check_jira_mail_queue_status':
                 jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, mail_threshold_limit)
+
+            if act == 'check_ldap_sync_status':
+                jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, ldap_sync_threshold_limit)
+
+            click.echo()
 
         browser.close()
         browser.quit()
