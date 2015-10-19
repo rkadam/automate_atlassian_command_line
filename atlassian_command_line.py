@@ -426,7 +426,7 @@ def start(app_type, app_name, browser_name, base_url, userid, password, action, 
         for act in action:
             click.echo('Executing Confluence command: %s' % act)
             if act == 'update_global_color_scheme':
-                wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
+                wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
                 #wiki_browser.update_global_color_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
 
             if act == 'update_general_configuration':
