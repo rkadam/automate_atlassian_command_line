@@ -393,8 +393,7 @@ if '__main__' == __name__:
 @click.option('--password', prompt='Enter your credentials', hide_input=True, confirmation_prompt=True, help="Use password 'pongbot' to play with test instance pongbot.atlassian.net")
 @click.option('--action', '-a', multiple=True,
               help="Available actions:                            Wiki -> 'update_global_color_scheme', 'update_general_configuration', 'update_wiki_spaces_color_scheme' "
-                   "              JIRA -> 'check_mail_queue_status', 'disable_all_project_notifications'                  "
-                   "Bitbucket Server -> 'check_ldap_sync_status'")
+                   "              JIRA -> 'check_mail_queue_status', 'disable_all_project_notifications', 'check_ldap_sync_status'")
 @click.option('--mail-threshold-limit', default=100, help="If emails in queue are greater than this limit, then ACL will alert user")
 @click.option('--ldap-sync-threshold-limit', default=4, help="If last LDAP sync happened more than given 'ldap_sync_threshold_limit' hours, then ACL will alert user")
 def start(app_type, app_name, browser_name, base_url, userid, password, action, mail_threshold_limit, ldap_sync_threshold_limit):
