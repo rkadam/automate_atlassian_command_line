@@ -1,6 +1,25 @@
 # Automate Atlassian from Command Line (ACL)
 Entry to _Atlassian Codegeist Hackathon 2015_: http://devpost.com/software/atlassian-command-line
 
+## What it does
+We are going to use Python, Selenium along wth PhantomJS to just automate anything that you like. 
+
+> * Automate On-premise or Atlassian.net hosted JIRA / Confluence instances.
+> * Use headless browser such as PhantomJS to achieve automation at regular intervals
+> * Automate administration / user tasks across all Atlassian applications (current focus limited to JIRA and Confluence though)
+
+#### JIRA Tasks Automation
+* Disable notification schemes for all projects **--action = disable_project_notification_schemes**
+* Mail Queue health check **--action = check_jira_mail_queue_status**
+* LDAP sync status **--action = check_ldap_sync_status**
+* Download attachments for all issues as per JQL **--action = get_jira_attachments**
+* Add / update list of options associated to Selectfield (not yet available)
+
+#### Confluence Automation
+* Update Global color scheme **--action = update_global_color_scheme**
+* Update color scheme for all Wiki spaces **--action = update_wiki_spaces_color_scheme**
+* Update general configuration **--action = update_general_configuration**
+
 # Usage instructions
 ## How to use this Add On
 * Clone source from [Atlassian Command Line](https://github.com/rkadam/atlassian_command_line) git repository
