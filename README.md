@@ -9,6 +9,7 @@ We are going to use Python, Selenium along wth PhantomJS to just automate anythi
 > * Automate multiple actions from single command _(just add --action = x, --action = y)_
 
 #### JIRA Tasks Automation
+_(--app-name = JIRA)_
 * Disable notification schemes for all projects **--action = disable_project_notification_schemes**
 * Mail Queue health check **--action = check_jira_mail_queue_status**
 * LDAP sync status **--action = check_ldap_sync_status**
@@ -16,6 +17,7 @@ We are going to use Python, Selenium along wth PhantomJS to just automate anythi
 * Add / update list of options associated to Selectfield (not yet available)
 
 #### Confluence Automation
+_(--app-name = Confluence)_
 * Update Global color scheme **--action = update_global_color_scheme**
 * Update color scheme for all Wiki spaces **--action = update_wiki_spaces_color_scheme**
 * Update general configuration **--action = update_general_configuration**
