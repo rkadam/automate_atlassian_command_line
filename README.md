@@ -3,10 +3,10 @@ Entry to _Atlassian Codegeist Hackathon 2015_: http://devpost.com/software/atlas
 
 ## What it does
 We are going to use Python, Selenium along wth PhantomJS to just automate anything that you like. 
-
 > * Automate On-premise or Atlassian.net hosted JIRA / Confluence instances.
 > * Use headless browser such as PhantomJS to achieve automation at regular intervals
 > * Automate administration / user tasks across all Atlassian applications (current focus limited to JIRA and Confluence though)
+> * Automate multiple actions from single command _(just add --action = x, --action = y)_
 
 #### JIRA Tasks Automation
 * Disable notification schemes for all projects **--action = disable_project_notification_schemes**
