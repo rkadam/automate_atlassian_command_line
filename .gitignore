@@ -12,3 +12,7 @@ Atlassian_Command_Line.egg-info/requires.txt
 Atlassian_Command_Line.egg-info/SOURCES.txt
 
 Atlassian_Command_Line.egg-info/top_level.txt
+
+Test.py
+
+downloads/

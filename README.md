@@ -46,7 +46,11 @@ This will provide detail information on all parameters available and how to use 
 
 ```
 - Automate the act of downloading all attachments as per JQL
+- default JQL = created = now()
 > acl --app-name JIRA --action get_jira_attachments --userid admin --password pongbot --browser-name PhantomJS --jql "key=TEST-1"
+-- Setting up new location for jira attachments download
+> acl --app-name JIRA --action get_jira_attachments --userid admin --password pongbot --browser-name PhantomJS --jql "project=TEST" --download-dir "/tmp"
+
 ```
 
 ```

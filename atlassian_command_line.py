@@ -151,6 +151,8 @@ class JIRABrowser:
                 click.echo('For Project "%s", Notification Scheme changed from "%s" to None' % (project_key, current_notification_scheme_name))
 
     def check_jira_mail_queue_status (self, browser, base_url, mail_threshold_limit):
+        click.echo("Override default mail-threshold-limit (100) if necessary.")
+        click.echo()
         mail_queue_url = base_url + '/secure/admin/MailQueueAdmin!default.jspa'
 
         # Visit Mail Queue page
@@ -163,6 +165,8 @@ class JIRABrowser:
             click.echo('Emails are piling in JIRA Mail queue. Please have a look at earliest')
 
     def get_jira_attachments(self, browser, base_url, userid, password, jql, download_dir):
+        click.echo("Override default values to jql (created=now()) and download-dir (./downloads)if necessary.")
+        click.echo()
 
         auth = (userid, password)
 
@@ -207,6 +211,9 @@ class JIRABrowser:
             issue_starting_index = search_result.json()['startAt'] + issue_limit_per_fetch
 
     def check_ldap_sync_status(self, browser, base_url, ldap_sync_threshold_limit):
+        click.echo("Override default ldap-sync-threshold-limit (4) hours if necessary.")
+        click.echo()
+
         # If last LDAP sync happened more than ldap_sync_threshold_limit hours ago, warn JIRA Admin
         ldap_sync_status_url = base_url + '/plugins/servlet/embedded-crowd/directories/list'
         browser.get(ldap_sync_status_url)
@@ -319,6 +326,11 @@ class WikiBrowser:
                 }
 
     def update_general_configuration(self, browser, new_base_url):
+        click.echo("Right now it just changes siteTitle value to 'Pongbot\'s confluence <random number 1-10>")
+        click.echo("Future we will provide configuration file to update all general configuration values.")
+        click.echo("Future is Bright, just stay tight!")
+        click.echo()
+
         general_config_url = new_base_url + "/admin/editgeneralconfig.action"
         browser.get(general_config_url)
         site_title = browser.find_element_by_id('siteTitle')
@@ -330,6 +342,8 @@ class WikiBrowser:
 
     def update_global_color_scheme(self, browser, new_base_url, new_color_scheme_file):
         # Let's get to "View Colour Scheme Settings" screen (lookandfeel.action)
+        click.echo("Update default color values from file config/wiki_global_custom_colour_scheme.default if necessary")
+        click.echo()
         custom_colour_scheme_url = new_base_url + "/admin/lookandfeel.action"
         browser.get(custom_colour_scheme_url)
         browser.find_element_by_id("edit-scheme-link").click()
@@ -421,13 +435,13 @@ class WikiBrowser:
 @click.option('--password', prompt='Enter your credentials', hide_input=True, confirmation_prompt=True, help="Use password 'pongbot' to play with test instance pongbot.atlassian.net")
 @click.option('--action', '-a', multiple=True,
               help="Available actions:                            Wiki -> 'update_global_color_scheme', 'update_general_configuration', 'update_wiki_spaces_color_scheme' "
-                   "              JIRA -> 'check_mail_queue_status', 'disable_all_project_notifications', 'check_ldap_sync_status'")
+                   "              JIRA -> 'check_mail_queue_status', 'disable_all_project_notifications', 'check_ldap_sync_status', 'get_jira_attachments'")
 # Parameters for Mail Queue Check
-@click.option('--mail-threshold-limit', default=100, help="If emails in queue are greater than this limit, then ACL will alert user")
+@click.option('--mail-threshold-limit', default=100, help="If emails in queue are greater than this limit, then ACL will alert user. ->Default: 100<-")
 # Parameters for LDAP Sync Status check
-@click.option('--ldap-sync-threshold-limit', default=4, help="If last LDAP sync happened more than given 'ldap_sync_threshold_limit' hours, then ACL will alert user")
+@click.option('--ldap-sync-threshold-limit', default=4, help="If last LDAP sync happened more than given 'ldap_sync_threshold_limit' hours, then ACL will alert user. ->Default: 4 (hours)<-")
 # Parameters for Attachment Download
-@click.option('--jql', help='Enter JQL to get attachments for all JIRA tickets')
+@click.option('--jql', default='created=now()', help='Enter JQL to get attachments for all JIRA tickets. ->Default: created = now()<-')
 @click.option('--download-dir', default='./downloads', help='Enter complete path for a directory where you want attachments to be downloaded. ->Default Download Directory=./downloads<-')
 def start(app_type, app_name, browser_name, base_url, userid,
           password, action, mail_threshold_limit, ldap_sync_threshold_limit,
