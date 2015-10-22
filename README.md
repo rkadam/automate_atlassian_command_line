@@ -40,9 +40,15 @@ This will provide detail information on all parameters available and how to use 
 ```
 
 ```
-- Automate act of disabling notification schemes for all JIRA projects
+- Automate the act of disabling notification schemes for all JIRA projects
 > acl --app-type 'atlassian.net' --base-url https://pongbot.atlassian.net --userid admin --action 'disable_project_notification_schemes' --app-name JIRA --password <password> --browser-name PhantomJS
 ```
+
+```
+- Automate the act of downloading all attachments as per JQL
+> acl --app-name JIRA --action get_jira_attachments --userid admin --password pongbot --browser-name PhantomJS --jql "key=TEST-1"
+```
+
 ```
 - Automate JIRA Outgoing Mail Queue check
 > acl --app-type 'other' --base-url https://jira.example.com --userid admin --app-name JIRA --password 'password' --browser-name PhantomJS --action 'check_jira_mail_queue_status' --mail_threshold_limit 100

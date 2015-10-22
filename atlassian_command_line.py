@@ -18,7 +18,7 @@ import datetime
 import sys
 
 import requests
-import json
+import shutil
 
 # Disable warnings about not verifying SSL access.
 requests.packages.urllib3.disable_warnings()
@@ -162,6 +162,50 @@ class JIRABrowser:
             click.echo('Emails Queued in JIRA: %s' % current_email_in_queue_count)
             click.echo('Emails are piling in JIRA Mail queue. Please have a look at earliest')
 
+    def get_jira_attachments(self, browser, base_url, userid, password, jql, download_dir):
+
+        auth = (userid, password)
+
+        #jira_search_rest_url = base_url + "/rest/api/2/search?" + urllib.urlencode(jql) +"&fields=attachment"
+        jira_search_rest_url = base_url + "/rest/api/2/search?jql=" + requests.utils.quote(jql) +"&fields=attachment"
+
+        #click.echo(jira_search_rest_url)
+
+        issue_starting_index = 0
+        total_issue_entries_available = 100
+        issue_limit_per_fetch = 50
+
+        while issue_starting_index < total_issue_entries_available:
+            updated_jira_search_rest_url = jira_search_rest_url + "&startAt=" + str(issue_starting_index) + "&maxResults=" + str(issue_limit_per_fetch)
+            #click.echo(updated_jira_search_rest_url)
+
+            search_result = requests.get(updated_jira_search_rest_url, headers=header_params, auth=auth, verify=False)
+            search_result.raise_for_status()
+
+            result_issue_entries = search_result.json()["issues"]
+            #click.echo(result_issue_entries)
+            result_issue_count_fetch_in_this_iteration = len(result_issue_entries)
+            total_issue_entries_available = search_result.json()["total"]
+
+            click.echo("Starting Index - " + str(issue_starting_index) + ", Issues fetched in this iteration - " + str(result_issue_count_fetch_in_this_iteration)
+            + ", Total Issues to be fetched - " + str(total_issue_entries_available))
+            for i in range(0, result_issue_count_fetch_in_this_iteration):
+                # Get Attachment info.
+                if 'fields' in result_issue_entries[i] and 'attachment' in result_issue_entries[i]['fields']:
+                    attachment_info = result_issue_entries[i]['fields']['attachment']
+                    if attachment_info != None:
+                        total_attachments = len(attachment_info)
+                        for attach_index in range(0, total_attachments):
+                            click.echo("Downloading attachment - " + attachment_info[attach_index]['content'] + " for Issue: " + result_issue_entries[i]['key'])
+
+                            attachment_response = requests.get(attachment_info[attach_index]['content'], auth=auth, stream=True)
+                            attachment_response.raise_for_status()
+                            with open(download_dir + "/" + attachment_info[attach_index]['filename'], 'wb') as f:
+                                    attachment_response.raw.decode_content = True
+                                    shutil.copyfileobj(attachment_response.raw, f)
+
+            issue_starting_index = search_result.json()['startAt'] + issue_limit_per_fetch
+
     def check_ldap_sync_status(self, browser, base_url, ldap_sync_threshold_limit):
         # If last LDAP sync happened more than ldap_sync_threshold_limit hours ago, warn JIRA Admin
         ldap_sync_status_url = base_url + '/plugins/servlet/embedded-crowd/directories/list'
@@ -193,7 +237,8 @@ class JIRABrowser:
     command_dictionary = {
         'disable_project_notification_schemes': disable_project_notification_schemes,
         'check_jira_mail_queue_status': check_jira_mail_queue_status,
-        'check_ldap_sync_status': check_ldap_sync_status
+        'check_ldap_sync_status': check_ldap_sync_status,
+        'get_jira_attachments': get_jira_attachments
     }
 
 
@@ -360,25 +405,8 @@ class WikiBrowser:
         'update_wiki_spaces_color_scheme': update_wiki_spaces_color_scheme
     }
 
-if '__main__' == __name__:
-    '''
-    wiki_browser = WikiBrowser(Firefox)
-    #wiki_browser = WikiBrowser(PhantomJS)
-
-    # on premise Wiki
-    #(browser, new_base_url) = wiki_browser.login('other', 'https://localhost:2990', 'admin', 'admin')
-
-    #On Demand, Atlassian.net wiki
-    (browser, new_base_url) = wiki_browser.login('atlassian.net', 'https://example.atlassian.net', 'userid', 'password')
-    wiki_browser.update_global_color_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
-    wiki_browser.update_general_configuration(browser, new_base_url)
-
-    browser.close()
-    browser.quit()
-    '''
-
-
 @click.command()
+# General Parameters needed for Atlassian Command Line use.
 @click.option('--app-type', type=click.Choice(['atlassian.net', 'other']),
               default='atlassian.net',
               help='Enter type of application that you want to automate. ->Default: atlassian.net<-')
@@ -387,16 +415,23 @@ if '__main__' == __name__:
               help='Enter Atlassian Application that you want to automate. ->Default: Confluence<-')
 @click.option('--browser-name', type=click.Choice(['Firefox', 'PhantomJS']),
               default='Firefox',
-              help='Enter Browser that you would like to use. For cronjobs, you need to use PhantomJS. ->Default: Firefox<-')
+              help='"Firefox" and "PhantomJS" are the only supported Browsers. For cronjobs, you need to use PhantomJS. ->Default: Firefox<-')
 @click.option('--base-url', default='https://pongbot.atlassian.net', help="Enter base URL for Atlassian application. ->Default: https://pongbot.atlassian.net<-")
 @click.option('--userid', prompt='Enter Administrator Userid', help="Provide userid with Application Administration permissions. Use 'admin' to play with pongbot.atlassian.net")
 @click.option('--password', prompt='Enter your credentials', hide_input=True, confirmation_prompt=True, help="Use password 'pongbot' to play with test instance pongbot.atlassian.net")
 @click.option('--action', '-a', multiple=True,
               help="Available actions:                            Wiki -> 'update_global_color_scheme', 'update_general_configuration', 'update_wiki_spaces_color_scheme' "
                    "              JIRA -> 'check_mail_queue_status', 'disable_all_project_notifications', 'check_ldap_sync_status'")
+# Parameters for Mail Queue Check
 @click.option('--mail-threshold-limit', default=100, help="If emails in queue are greater than this limit, then ACL will alert user")
+# Parameters for LDAP Sync Status check
 @click.option('--ldap-sync-threshold-limit', default=4, help="If last LDAP sync happened more than given 'ldap_sync_threshold_limit' hours, then ACL will alert user")
-def start(app_type, app_name, browser_name, base_url, userid, password, action, mail_threshold_limit, ldap_sync_threshold_limit):
+# Parameters for Attachment Download
+@click.option('--jql', help='Enter JQL to get attachments for all JIRA tickets')
+@click.option('--download-dir', default='./downloads', help='Enter complete path for a directory where you want attachments to be downloaded. ->Default Download Directory=./downloads<-')
+def start(app_type, app_name, browser_name, base_url, userid,
+          password, action, mail_threshold_limit, ldap_sync_threshold_limit,
+          jql, download_dir):
     """
     Atlassian Command Line aka ACL - Automate the tasks that you can not!
 
@@ -416,11 +451,12 @@ def start(app_type, app_name, browser_name, base_url, userid, password, action, 
         wiki_browser = None
 
         if browser_name == 'Firefox':
+
             wiki_browser = WikiBrowser(Firefox)
         else:
             wiki_browser = WikiBrowser(PhantomJS)
+
         (browser, new_base_url) = wiki_browser.login(app_type, base_url, userid, password)
-        #wiki_browser.update_global_custom_colour_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.dev")
 
         for act in action:
             click.echo('Executing Confluence command: %s' % act)
@@ -460,6 +496,9 @@ def start(app_type, app_name, browser_name, base_url, userid, password, action, 
 
             if act == 'check_ldap_sync_status':
                 jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, ldap_sync_threshold_limit)
+
+            if act == 'get_jira_attachments':
+                jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, userid, password, jql, download_dir)
 
             click.echo()
 
