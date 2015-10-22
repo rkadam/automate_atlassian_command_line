@@ -14,7 +14,7 @@ Entry to [Atlassian Codegeist Hackathon 2015](http://codegeist.devpost.com/): ht
 > acl --help
 This will provide detail information on all parameters available and how to use ACL
 ```
-![Automate the Atlassian from Command Line -- Help Screen](http://challengepost-s3-challengepost.netdna-ssl.com/photos/production/software_photos/000/308/740/datas/gallery.jpg)
+![Automate the Atlassian from Command Line -- Help Screen](http://challengepost-s3-challengepost.netdna-ssl.com/photos/production/software_photos/000/309/416/datas/gallery.jpg)
 
 * **Examples**
 
