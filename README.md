@@ -1,6 +1,8 @@
 # Automate Atlassian from Command Line (ACL)
 Entry to _Atlassian Codegeist Hackathon 2015_: http://devpost.com/software/atlassian-command-line
 
+<img width="703" alt="screen shot 2015-10-24 at 4 39 22 pm" src="https://cloud.githubusercontent.com/assets/1423996/10713344/9a809444-7a6e-11e5-9c0c-8a58cb46546c.png">
+
 ## What it does
 We are going to use Python, Selenium along wth PhantomJS to just automate anything that you like. 
 > * Automate On-premise or Atlassian.net hosted JIRA / Confluence instances.
@@ -35,9 +37,7 @@ _(--app-name = Confluence)_
 > acl --help
 This will provide detail information on all parameters available and how to use ACL
 ```
-![Automate the Atlassian from Command Line -- Help Screen](http://challengepost-s3-challengepost.netdna-ssl.com/photos/production/software_photos/000/309/468/datas/gallery.jpg)
-
-* **Examples**
+**Examples**
 
 ```
 > acl
