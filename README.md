@@ -1,7 +1,7 @@
 # Automate Atlassian from Command Line (ACL)
 Entry to _Atlassian Codegeist Hackathon 2015_: http://devpost.com/software/atlassian-command-line
 
-<img width="703" alt="screen shot 2015-10-24 at 4 39 22 pm" src="https://cloud.githubusercontent.com/assets/1423996/10713344/9a809444-7a6e-11e5-9c0c-8a58cb46546c.png">
+<img width="817" alt="screen shot 2015-10-24 at 10 59 58 pm" src="https://cloud.githubusercontent.com/assets/1423996/10714267/7155ae08-7aa3-11e5-8d6f-5d8478e781dd.png">
 
 ## What it does
 We are going to use Python, Selenium along wth PhantomJS to just automate anything that you like. 
