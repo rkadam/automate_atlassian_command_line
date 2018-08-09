@@ -472,7 +472,7 @@ def start(app_type, app_name, browser_name, base_url, userid,
     # chrome_options.add_argument("--headless")
     chrome_options.add_argument("--window-size=1366x768")
     
-    chrome_driver = '/Users/rkadam/work/pywork/chrome-driver/chromedriver'
+    chrome_driver = '<chrome driver location>'
     web_driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=chrome_driver)
 
     if app_name == 'Confluence':
