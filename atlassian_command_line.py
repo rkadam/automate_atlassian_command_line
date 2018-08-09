@@ -256,7 +256,7 @@ class JIRABrowser:
 class WikiBrowser:
     def __init__(self, driver):
         self.driver = driver
-        self.browser = None
+        self.browser = driver
 
     def connect(self):
         self.browser = self.driver()
@@ -264,14 +264,17 @@ class WikiBrowser:
 
     # noinspection PyBroadException
     def login(self, login_type, base_url, userid, password):
+        '''
         try:
             if self.browser is None:
                 self.connect()
         except:
             print "Unable to create Selenium Driver Instance."
-            sys.exit(0)
+            #sys.exit(0)
+        '''
 
         browser = self.browser
+        
         login_elem_dict = self.get_login_elements(login_type, base_url)
         #print login_elem_dict
         new_base_url = None
@@ -284,6 +287,11 @@ class WikiBrowser:
                 os_name.clear()
                 os_name.send_keys(userid)
 
+                if login_type == 'atlassian.net':
+                    submit = browser.find_element_by_id('login-submit')
+                    submit.click()
+                    time.sleep(2)
+                
                 os_password = browser.find_element_by_id(login_elem_dict['param_password'])
                 os_password.clear()
                 os_password.send_keys(password)
@@ -293,15 +301,15 @@ class WikiBrowser:
 
                 # On Premise Atlassian application usually asks for Authentication for one more time.
                 new_base_url = login_elem_dict['param_new_base_url']
-                browser.get(new_base_url + "/admin/console.action")
+                browser.get(new_base_url + "/admin/viewgeneralconfig.action")
                 if login_type == 'other':
                     browser.find_element_by_id('password').send_keys(password)
                     browser.find_element_by_id('authenticateButton').click()
 
                 # Verify that we are on Administration Console.
                 # This will confirm, we are logged in as a Global Administrator.
-                assert browser.find_element_by_class_name('admin-heading').text == 'Administration Console'
-                assert browser.find_element_by_class_name('admin-subtitle').text == 'The Administration Console is the interface for managing and maintaining Confluence.'
+                assert browser.find_element_by_class_name('admin-heading').text == 'General Configuration'
+                assert browser.find_element_by_id('editbaseurl-label').text == 'Server Base URL'
 
             except NoSuchElementException:
                 print "Unable to login to Wiki Application, exiting."
@@ -316,8 +324,8 @@ class WikiBrowser:
             return {
                     'param_user': 'username',
                     'param_password': 'password',
-                    'param_submit': 'login',
-                    'param_login_url': base_url + "/login?dest-url=/wiki",
+                    'param_submit': 'login-submit',
+                    'param_login_url': base_url + "/wiki/login.action?os_destination=/discover/all-updates",
                     'param_new_base_url': base_url + "/wiki"
             }
 
@@ -368,6 +376,7 @@ class WikiBrowser:
             colour_element = browser.find_element_by_id(colour_name)
             colour_element.clear()
             colour_element.send_keys(colour_value)
+            colour_element.send_keys(Keys.RETURN)
 
         browser.find_element_by_name("confirm").click()
 
@@ -423,6 +432,7 @@ class WikiBrowser:
         'update_wiki_spaces_color_scheme': update_wiki_spaces_color_scheme
     }
 
+
 @click.command()
 # General Parameters needed for Atlassian Command Line use.
 @click.option('--app-type', type=click.Choice(['atlassian.net', 'other']),
@@ -431,7 +441,7 @@ class WikiBrowser:
               default='Confluence', help='->Default: Confluence<-')
 #"Firefox" and "PhantomJS" are the only supported Browsers. To use ACL in cronjobs, you need to use PhantomJS.
 @click.option('--browser-name', type=click.Choice(['Firefox', 'PhantomJS']), default='Firefox', help='Default: ->Firefox<-')
-@click.option('--base-url', default='https://pongbot.atlassian.net', help="->Default: https://pongbot.atlassian.net<-")
+@click.option('--base-url', default='https://pongbot.atlassian.net/', help="->Default: https://pongbot.atlassian.net/<-")
 @click.option('--userid', prompt='Enter Administrator Userid')
 @click.option('--password', prompt='Enter your credentials', hide_input=True, confirmation_prompt=True)
 @click.option('--action', '-a', multiple=True,
@@ -472,7 +482,7 @@ def start(app_type, app_name, browser_name, base_url, userid,
     # chrome_options.add_argument("--headless")
     chrome_options.add_argument("--window-size=1366x768")
     
-    chrome_driver = '<chrome driver location>'
+    chrome_driver = '/Users/eagle/work/chromedriver'
     web_driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=chrome_driver)
 
     if app_name == 'Confluence':
