@@ -1,6 +1,7 @@
 __author__ = 'Raju Kadam'
 
 import os
+from selenium import webdriver
 from selenium.webdriver import *
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
@@ -8,6 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
+from selenium.webdriver.chrome.options import Options
 
 import xml.etree.ElementTree as ET
 import click
@@ -34,6 +36,8 @@ header_params = {"content-type": "application/json"}
 #   disable_project_notification_schemes(), check_jira_mail_queue_status() will remain in *JIRABrowser*
 #   update_global_color_scheme(), update_general_configuration() and update_wiki_spaces_color_scheme() remain in *WikiBrowser*
 # Till that happens you will see little bit overlapping between all these classes.
+# 
+# https://developer.mozilla.org/en-US/docs/Learn/Tools_and_testing/Cross_browser_testing/Your_own_automation_environment
 
 class JIRABrowser:
     def __init__(self, driver):
@@ -464,15 +468,16 @@ def start(app_type, app_name, browser_name, base_url, userid,
     click.echo('Automating application located at %s' % base_url)
     click.echo()
 
+    chrome_options = Options()
+    # chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--window-size=1366x768")
+    
+    chrome_driver = '/Users/rkadam/work/pywork/chrome-driver/chromedriver'
+    web_driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=chrome_driver)
+
     if app_name == 'Confluence':
 
-        wiki_browser = None
-
-        if browser_name == 'Firefox':
-
-            wiki_browser = WikiBrowser(Firefox)
-        else:
-            wiki_browser = WikiBrowser(PhantomJS)
+        wiki_browser = WikiBrowser(web_driver)
 
         (browser, new_base_url) = wiki_browser.login(app_type, base_url, userid, password)
 
@@ -496,12 +501,7 @@ def start(app_type, app_name, browser_name, base_url, userid,
         browser.quit()
 
     if app_name == 'JIRA':
-        jira_browser = None
-        if browser_name == 'Firefox':
-            jira_browser = JIRABrowser(Firefox)
-        else:
-            jira_browser = JIRABrowser(PhantomJS)
-
+        jira_browser = JIRABrowser(web_driver)
         (browser, new_base_url) = jira_browser.login(app_type, base_url, userid, password)
 
         for act in action:
