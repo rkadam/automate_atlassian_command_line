@@ -1,6 +1,5 @@
 __author__ = 'Raju Kadam'
 
-import os
 from selenium import webdriver
 from selenium.webdriver import *
 from selenium.common.exceptions import NoSuchElementException
@@ -11,13 +10,14 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
 
-import xml.etree.ElementTree as ET
 import click
 import random
+import os
 
 import time
 import datetime
 import sys
+import traceback
 
 import requests
 import shutil
@@ -41,23 +41,9 @@ header_params = {"content-type": "application/json"}
 
 class JIRABrowser:
     def __init__(self, driver):
-        self.driver = driver
-        self.browser = None
-
-    def connect(self):
-        self.browser = self.driver()
-        self.browser.set_window_size(1120, 550)
+        self.browser = driver
 
     def get_login_elements(self, login_to, base_url):
-
-        if login_to == 'atlassian.net':
-            return {
-                    'param_user': 'username',
-                    'param_password': 'password',
-                    'param_submit': 'login',
-                    'param_login_url': base_url + "/login",
-                    'param_new_base_url': base_url
-            }
 
         return {
                 'param_user': 'login-form-username',
@@ -69,16 +55,9 @@ class JIRABrowser:
 
     # noinspection PyBroadException
     def login(self, login_type, base_url, userid, password):
-        try:
-            if self.browser is None:
-                self.connect()
-        except:
-            print "Unable to create Selenium Driver Instance."
-            sys.exit(0)
-
         browser = self.browser
         login_elem_dict = self.get_login_elements(login_type, base_url)
-        #print login_elem_dict
+        #click.echo(login_elem_dict)
         new_base_url = None
 
         if not self.verify_admin_access():
@@ -101,16 +80,17 @@ class JIRABrowser:
                 # On Premise Atlassian application usually asks Authentication for one more time.
                 new_base_url = login_elem_dict['param_new_base_url']
                 browser.get(new_base_url + "/secure/admin/ViewApplicationProperties.jspa")
-                if login_type == 'other':
+                if login_type == 'on-premise':
                     browser.find_element_by_id('login-form-authenticatePassword').send_keys(password)
                     browser.find_element_by_id('login-form-submit').click()
 
                 # Verify that we are on Administration Console.
                 # This will confirm, we are logged in as a Global Administrator.
-                assert browser.find_element_by_id('admin-search-link').text == 'Search JIRA admin'
+                assert browser.find_element_by_id('maximumAuthenticationAttemptsAllowed').text.startswith('Maximum Authentication Attempts Allowed')
 
             except NoSuchElementException:
-                print "Unable to login to JIRA Application, exiting."
+                click.echo("Unable to login to Jira Application, exiting.")
+                traceback.print_exc(file=sys.stdout)
                 browser.close()
                 browser.quit()
                 sys.exit(0)
@@ -155,7 +135,7 @@ class JIRABrowser:
                 click.echo('For Project "%s", Notification Scheme changed from "%s" to None' % (project_key, current_notification_scheme_name))
 
     def check_jira_mail_queue_status (self, browser, base_url, mail_threshold_limit):
-        click.echo("Override default mail-threshold-limit (100) if necessary.")
+        click.echo("    Override default mail-threshold-limit (100 emails in queue) if necessary.")
         click.echo("---")
         mail_queue_url = base_url + '/secure/admin/MailQueueAdmin!default.jspa'
 
@@ -165,11 +145,13 @@ class JIRABrowser:
         current_email_in_queue_count = current_queue_status_text.strip().split()[4]
         if int(current_email_in_queue_count) > mail_threshold_limit:
             # TODO: Send Email to Admins
-            click.echo('Emails Queued in JIRA: %s' % current_email_in_queue_count)
-            click.echo('Emails are piling in JIRA Mail queue. Please have a look at earliest')
+            click.echo('Emails Queued in Jira : %s' % current_email_in_queue_count)
+            click.echo('Emails are piling in Jira Mail queue. Please have a look at earliest')
+        else:
+            click.echo('All is well at Mail Queue!')
 
     def get_jira_attachments(self, browser, base_url, userid, password, jql, download_dir):
-        click.echo("Override default values to jql (created=now()) and download-dir (./downloads) if necessary.")
+        click.echo("    Override default values to jql (created=now()) and download-dir (./downloads) if necessary.")
         click.echo("---")
 
         auth = (userid, password)
@@ -215,28 +197,36 @@ class JIRABrowser:
             issue_starting_index = search_result.json()['startAt'] + issue_limit_per_fetch
 
     def check_ldap_sync_status(self, browser, base_url, ldap_sync_threshold_limit):
-        click.echo("Override default ldap-sync-threshold-limit (4) hours if necessary.")
+        click.echo("    Override default ldap-sync-threshold-limit (4) hours if necessary.")
         click.echo("---")
 
-        # If last LDAP sync happened more than ldap_sync_threshold_limit hours ago, warn JIRA Admin
+        # If last LDAP sync happened more than ldap_sync_threshold_limit hours ago, warn Jira Admin
         ldap_sync_status_url = base_url + '/plugins/servlet/embedded-crowd/directories/list'
         browser.get(ldap_sync_status_url)
 
         # Get last successful SYNC time information. Example: Last synchronised at 7/16/15 9:52 AM (took 25s)
-        ldap_sync_status_string_aray = browser.find_element_by_class_name('sync-info').text.strip().split()
-        last_successful_sync_status_time = '%s %s %s' % (ldap_sync_status_string_aray[3], ldap_sync_status_string_aray[4], ldap_sync_status_string_aray[5])
-        click.echo('Last Successful Sync Status Time: %s' % last_successful_sync_status_time)
+        try:
+            ldap_sync_info_element = browser.find_element_by_class_name('sync-info')
 
-        # Do arithmetic to find out how many hours before this sync happened.
-        last_sync_datetime = datetime.datetime.strptime(last_successful_sync_status_time, "%m/%d/%y %I:%M %p")
-        current_daytime = datetime.datetime.now()
-        time_delta = current_daytime - last_sync_datetime
-        hours, minutes, seconds = self.convert_timedelta(time_delta)
-        sync_status_message = 'Time elapsed since last LDAP sync: {} hour(s), {} minute(s)'.format(hours, minutes)
-        click.echo(sync_status_message)
+            ldap_sync_status_string_aray = browser.find_element_by_class_name('sync-info').text.strip().split()
+            last_successful_sync_status_time = '%s %s %s' % (ldap_sync_status_string_aray[3], ldap_sync_status_string_aray[4], ldap_sync_status_string_aray[5])
+            click.echo('Last Successful Sync Status Time: %s' % last_successful_sync_status_time)
 
-        if hours > ldap_sync_threshold_limit:
-            click.echo("Something is wrong with LDAP sync process. Please verify at your earliest your convenience.")
+            # Do arithmetic to find out how many hours before this sync happened.
+            last_sync_datetime = datetime.datetime.strptime(last_successful_sync_status_time, "%m/%d/%y %I:%M %p")
+            current_daytime = datetime.datetime.now()
+            time_delta = current_daytime - last_sync_datetime
+            hours, minutes, seconds = self.convert_timedelta(time_delta)
+            sync_status_message = 'Time elapsed since last LDAP sync: {} hour(s), {} minute(s)'.format(hours, minutes)
+            click.echo(sync_status_message)
+
+            if hours > ldap_sync_threshold_limit:
+                click.echo("Something is wrong with LDAP sync process. Please verify at your earliest your convenience.")
+
+        except NoSuchElementException, e:
+            click.echo('Looks like you are not using LDAP or Active Directory! Nothing much to do here...')
+        except Exception,e:
+            click.echo(e)
 
     def convert_timedelta(self, duration):
         days, seconds = duration.days, duration.seconds
@@ -255,28 +245,15 @@ class JIRABrowser:
 
 class WikiBrowser:
     def __init__(self, driver):
-        self.driver = driver
         self.browser = driver
-
-    def connect(self):
-        self.browser = self.driver()
-        self.browser.set_window_size(1120, 550)
 
     # noinspection PyBroadException
     def login(self, login_type, base_url, userid, password):
-        '''
-        try:
-            if self.browser is None:
-                self.connect()
-        except:
-            print "Unable to create Selenium Driver Instance."
-            #sys.exit(0)
-        '''
-
         browser = self.browser
         
         login_elem_dict = self.get_login_elements(login_type, base_url)
-        #print login_elem_dict
+        #click.echo(login_elem_dict)
+        
         new_base_url = None
 
         if not self.verify_admin_access():
@@ -302,7 +279,7 @@ class WikiBrowser:
                 # On Premise Atlassian application usually asks for Authentication for one more time.
                 new_base_url = login_elem_dict['param_new_base_url']
                 browser.get(new_base_url + "/admin/viewgeneralconfig.action")
-                if login_type == 'other':
+                if login_type == 'on-premise':
                     browser.find_element_by_id('password').send_keys(password)
                     browser.find_element_by_id('authenticateButton').click()
 
@@ -312,22 +289,14 @@ class WikiBrowser:
                 assert browser.find_element_by_id('editbaseurl-label').text == 'Server Base URL'
 
             except NoSuchElementException:
-                print "Unable to login to Wiki Application, exiting."
+                click.echo("Unable to login to Wiki Application, exiting.")
+                traceback.print_exc(file=sys.stdout)
                 browser.close()
                 sys.exit(0)
 
         return browser, new_base_url
 
     def get_login_elements(self, login_to, base_url):
-
-        if login_to == 'atlassian.net':
-            return {
-                    'param_user': 'username',
-                    'param_password': 'password',
-                    'param_submit': 'login-submit',
-                    'param_login_url': base_url + "/wiki/login.action?os_destination=/discover/all-updates",
-                    'param_new_base_url': base_url + "/wiki"
-            }
 
         return {
                 'param_user': 'os_username',
@@ -372,31 +341,31 @@ class WikiBrowser:
                 colour_name, colour_value = line.partition("=")[::2]
                 global_custom_color_scheme_dict[colour_name] = colour_value.strip()
 
+        colour_element = None
         for colour_name, colour_value in global_custom_color_scheme_dict.iteritems():
+            click.echo ('%s , %s' % (colour_name, colour_value))
             colour_element = browser.find_element_by_id(colour_name)
             colour_element.clear()
+            time.sleep(1)
             colour_element.send_keys(colour_value)
-            colour_element.send_keys(Keys.RETURN)
-
+        
         browser.find_element_by_name("confirm").click()
+
+        click.echo()
+        click.echo("Successfully updated global color scheme.")
 
     def get_wiki_space_list(self, space_type, base_url, userid, password):
         spaces = []
 
-        space_list_rest_url = base_url + ("/rest/prototype/1/space?max-results=10000&type=%s" % space_type)
+        space_list_rest_url = base_url + ("/rest/api/space?max-results=10000&type=%s" % space_type)
         #click.echo(space_list_rest_url)
+
         result = requests.get(space_list_rest_url,  headers=header_params, auth=(userid, password), verify=False)
         result.raise_for_status()
 
-        # REST api spits out response in XML format instead of JSON!
-        result_root = ET.fromstring(result.content)
-
-        # Get all "space" nodes
-        space_nodes = result_root.findall('space')
-        for node in space_nodes:
-            spaces.append(node.attrib['key'])
-
-        return spaces
+        space_list = result.json()['results']
+        space_keys = [space['key'] for space in space_list]
+        return space_keys
 
     def update_wiki_spaces_color_scheme(self, browser, base_url, userid, password):
         # This function will update color scheme for all wiki spaces to global color scheme.
@@ -435,38 +404,33 @@ class WikiBrowser:
 
 @click.command()
 # General Parameters needed for Atlassian Command Line use.
-@click.option('--app-type', type=click.Choice(['atlassian.net', 'other']),
-              default='atlassian.net', help='->Default: atlassian.net<-')
-@click.option('--app-name', type=click.Choice(['Confluence', 'JIRA', 'Bitbucket Server']),
+@click.option('--app-type', type=click.Choice(['on-premise']),
+              default='on-premise', help='->Default: on-premise<-')
+@click.option('--app-name', type=click.Choice(['Confluence', 'Jira', 'Bitbucket Server']),
               default='Confluence', help='->Default: Confluence<-')
-#"Firefox" and "PhantomJS" are the only supported Browsers. To use ACL in cronjobs, you need to use PhantomJS.
-@click.option('--browser-name', type=click.Choice(['Firefox', 'PhantomJS']), default='Firefox', help='Default: ->Firefox<-')
-@click.option('--base-url', default='https://pongbot.atlassian.net/', help="->Default: https://pongbot.atlassian.net/<-")
+#"Chrome" is only supported browser as of now. To use ACL in cronjobs, you need to use Chrome with headless settings.
+@click.option('--browser-name', type=click.Choice(['Chrome']), default='Chrome', help='Default: ->Chrome<-')
+@click.option('--base-url', prompt='Enter Base URL for Atlassian application' )
 @click.option('--userid', prompt='Enter Administrator Userid')
 @click.option('--password', prompt='Enter your credentials', hide_input=True, confirmation_prompt=True)
 @click.option('--action', '-a', multiple=True,
-              help="Available actions for Wiki ->\n 'update_global_color_scheme', 'update_general_configuration', 'update_wiki_spaces_color_scheme' \n"
+              help="Available actions for Confluence ->\n 'update_global_color_scheme', 'update_general_configuration', 'update_wiki_spaces_color_scheme' \n"
                    "---------\n"
-                   "Available actions for JIRA ->\n 'check_mail_queue_status', 'disable_all_project_notifications', 'check_ldap_sync_status', 'get_jira_attachments'\n -")
+                   "Available actions for Jira ->\n 'check_mail_queue_status', 'disable_all_project_notifications', 'check_ldap_sync_status', 'get_jira_attachments'\n -")
 # Parameters for Mail Queue Check
 @click.option('--mail-threshold-limit', default=100, help="If emails in queue are greater than this limit, then ACL will alert user. ->Default:100<- , Used in Function: check_mail_queue_status()")
 # Parameters for LDAP Sync Status check
 @click.option('--ldap-sync-threshold-limit', default=4, help="If last LDAP sync happened more than given 'ldap_sync_threshold_limit' hours, then ACL will alert user. ->Default: 4 (hours)<-, Used in Function: check_ldap_sync_status")
 # Parameters for Attachment Download
-@click.option('--jql', default='created=now()', help='Enter JQL to get attachments for all JIRA tickets. ->Default: created = now()<-, Used in Function: get_jira_attachments')
+@click.option('--jql', default='created=now()', help='Enter JQL to get attachments for all Jira tickets. ->Default: created = now()<-, Used in Function: get_jira_attachments')
 @click.option('--download-dir', default='./downloads', help='Enter complete path for a directory where you want attachments to be downloaded. ->Default Download Directory=./downloads<-, Used in Function: get_jira_attachments')
+@click.option('--chrome-driver-location', prompt='Enter complete path for Chrome Driver', help="Make sure you have downloaded Chrome Driver from http://chromedriver.chromium.org/downloads")
+@click.option('--wiki-global-color-scheme-file', default='wiki_global_custom_colour_scheme.default', help='Provide name of global color scheme config file for Wiki ->Default config file = wiki_global_custom_colour_scheme.default<-')
 def start(app_type, app_name, browser_name, base_url, userid,
           password, action, mail_threshold_limit, ldap_sync_threshold_limit,
-          jql, download_dir):
+          jql, download_dir, chrome_driver_location, wiki_global_color_scheme_file):
     """
-    'Atlassian Command Line' aka ACL - Automate the tasks that you can not!
-
-    \b
-    ----------------------------------------------
-    Demo Instance: https://pongbot.atlassian.net
-    userid: admin
-    password: pongbot
-    ----------------------------------------------
+    'Atlassian Command Line' aka ACL - Automate the tasks which you can not!
     """
     """
     :param string:
@@ -480,9 +444,8 @@ def start(app_type, app_name, browser_name, base_url, userid,
 
     chrome_options = Options()
     # chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--window-size=1366x768")
-    
-    chrome_driver = '/Users/eagle/work/chromedriver'
+    chrome_options.add_argument("--window-size=1366x768")    
+    chrome_driver = chrome_driver_location
     web_driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=chrome_driver)
 
     if app_name == 'Confluence':
@@ -494,28 +457,25 @@ def start(app_type, app_name, browser_name, base_url, userid,
         for act in action:
             click.echo('Executing Confluence command: %s' % act)
             if act == 'update_global_color_scheme':
-                wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
-                #wiki_browser.update_global_color_scheme(browser, new_base_url, "config/wiki_global_custom_colour_scheme.default")
+                wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, "./config/" + wiki_global_color_scheme_file)
 
             if act == 'update_general_configuration':
                 wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url)
-                #wiki_browser.update_general_configuration(browser, new_base_url)
 
             if act == 'update_wiki_spaces_color_scheme':
                 wiki_browser.command_dictionary[act](wiki_browser, browser, new_base_url, userid, password)
-                #wiki_browser.update_wiki_spaces_color_scheme(browser, new_base_url, userid, password)
 
             click.echo()
 
         browser.close()
         browser.quit()
 
-    if app_name == 'JIRA':
+    if app_name == 'Jira':
         jira_browser = JIRABrowser(web_driver)
         (browser, new_base_url) = jira_browser.login(app_type, base_url, userid, password)
 
         for act in action:
-            click.echo('Executing JIRA command: %s' % act)
+            click.echo('Executing Jira command: %s' % act)
             if act == 'disable_project_notification_schemes':
                 jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, userid, password)
 
