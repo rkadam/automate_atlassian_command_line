@@ -443,7 +443,7 @@ def start(app_type, app_name, browser_name, base_url, userid,
     click.echo()
 
     chrome_options = Options()
-    # chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--window-size=1366x768")    
     chrome_driver = chrome_driver_location
     web_driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=chrome_driver)
