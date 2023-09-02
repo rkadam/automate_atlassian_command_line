@@ -2,17 +2,17 @@
 *.log
 
 Atlassian_Command_Line.egg-info/dependency_links.txt
-
 Atlassian_Command_Line.egg-info/entry_points.txt
-
 Atlassian_Command_Line.egg-info/PKG-INFO
-
 Atlassian_Command_Line.egg-info/requires.txt
-
 Atlassian_Command_Line.egg-info/SOURCES.txt
-
 Atlassian_Command_Line.egg-info/top_level.txt
 
 Test.py
 
 downloads/
+
+.env.*
+debug_commands.ipynb
+
+.ipynb_checkpoints/

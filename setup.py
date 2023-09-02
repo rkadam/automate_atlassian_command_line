@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="Atlassian Command Line",
-    version="0.1",
+    version="0.3.2",
     py_modules=['atlassian_command_line'],
     install_requires=['Click', 'requests', 'selenium'],
     entry_points='''

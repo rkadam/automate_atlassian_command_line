@@ -49,7 +49,7 @@ class JIRABrowser:
                 'param_user': 'login-form-username',
                 'param_password': 'login-form-password',
                 'param_submit': 'login-form-submit',
-                'param_login_url': base_url + '/login.jsp',
+                'param_login_url': base_url + '/login.jsp?nosso',
                 'param_new_base_url': base_url
                 }
 
@@ -64,15 +64,15 @@ class JIRABrowser:
             try:
                 browser.get(login_elem_dict['param_login_url'])
                 browser.implicitly_wait(1)
-                os_name = browser.find_element_by_id(login_elem_dict['param_user'])
+                os_name = browser.find_element(By.ID, login_elem_dict['param_user'])
                 os_name.clear()
                 os_name.send_keys(userid)
 
-                os_password = browser.find_element_by_id(login_elem_dict['param_password'])
+                os_password = browser.find_element(By.ID, login_elem_dict['param_password'])
                 os_password.clear()
                 os_password.send_keys(password)
 
-                browser.find_element_by_id(login_elem_dict['param_submit']).click()
+                browser.find_element(By.ID, login_elem_dict['param_submit']).click()
                 time.sleep(1)
 
                 #click.echo('Login as Admin user')
@@ -81,12 +81,12 @@ class JIRABrowser:
                 new_base_url = login_elem_dict['param_new_base_url']
                 browser.get(new_base_url + "/secure/admin/ViewApplicationProperties.jspa")
                 if login_type == 'on-premise':
-                    browser.find_element_by_id('login-form-authenticatePassword').send_keys(password)
-                    browser.find_element_by_id('login-form-submit').click()
+                    browser.find_element(By.ID, 'login-form-authenticatePassword').send_keys(password)
+                    browser.find_element(By.ID, 'login-form-submit').click()
 
                 # Verify that we are on Administration Console.
                 # This will confirm, we are logged in as a Global Administrator.
-                assert browser.find_element_by_id('maximumAuthenticationAttemptsAllowed').text.startswith('Maximum Authentication Attempts Allowed')
+                assert browser.find_element(By.ID, 'maximumAuthenticationAttemptsAllowed').text.startswith('Maximum Authentication Attempts Allowed')
 
             except NoSuchElementException:
                 click.echo("Unable to login to Jira Application, exiting.")
@@ -101,13 +101,13 @@ class JIRABrowser:
         browser = self.browser
         try:
             browser.implicitly_wait(1)
-            browser.find_element_by_id("system-admin-menu")
+            browser.find_element(By.ID, "system-admin-menu")
             return True
         except NoSuchElementException:
             return False
 
-    def get_jira_project_list(self, base_url, userid, password):
-        jira_project_list_rest_url = base_url + "/rest/api/2/project"
+    def get_jira_project_list(self, rest_api_base_url, userid, password):
+        jira_project_list_rest_url = rest_api_base_url + "/rest/api/2/project"
         result = requests.get(jira_project_list_rest_url,  headers=header_params, auth=(userid, password), verify=False)
         result.raise_for_status()
 
@@ -120,18 +120,18 @@ class JIRABrowser:
 
         return project_id_dict
 
-    def disable_project_notification_schemes(self, browser, base_url, userid, password):
+    def disable_project_notification_schemes(self, browser, base_url, rest_api_base_url, userid, password):
         project_notification_url = base_url + '/secure/project/SelectProjectScheme!default.jspa?projectId=%s'
 
-        project_dict = self.get_jira_project_list(base_url, userid, password)
+        project_dict = self.get_jira_project_list(rest_api_base_url, userid, password)
         for project_key, project_id in project_dict.iteritems():
             browser.get(project_notification_url % project_id)
-            scheme_dropdown_element = Select(browser.find_element_by_id('schemeIds_select'))
+            scheme_dropdown_element = Select(browser.find_element(By.ID, 'schemeIds_select'))
             current_selected_option = scheme_dropdown_element.first_selected_option
             current_notification_scheme_name = current_selected_option.text.strip()
             if current_notification_scheme_name != 'None':
                 scheme_dropdown_element.select_by_visible_text('None')
-                browser.find_element_by_id('associate_submit').click()
+                browser.find_element(By.ID, 'associate_submit').click()
                 click.echo('For Project "%s", Notification Scheme changed from "%s" to None' % (project_key, current_notification_scheme_name))
 
     def check_jira_mail_queue_status (self, browser, base_url, mail_threshold_limit):
@@ -141,23 +141,24 @@ class JIRABrowser:
 
         # Visit Mail Queue page
         browser.get(mail_queue_url)
-        current_queue_status_text = browser.find_element_by_class_name('jiraformbody').text
+        current_queue_status_text = browser.find_element(By.CLASS_NAME, 'jiraformbody').text
         current_email_in_queue_count = current_queue_status_text.strip().split()[4]
         if int(current_email_in_queue_count) > mail_threshold_limit:
             # TODO: Send Email to Admins
             click.echo('Emails Queued in Jira : %s' % current_email_in_queue_count)
             click.echo('Emails are piling in Jira Mail queue. Please have a look at earliest')
         else:
-            click.echo('All is well at Mail Queue!')
+            click.echo('All is well with Mail Queue!')
 
-    def get_jira_attachments(self, browser, base_url, userid, password, jql, download_dir):
+    # Be careful with using this method over too many projects or project with too many attachments!
+    def get_jira_attachments(self, browser, rest_api_base_url, userid, password, jql, download_dir):
         click.echo("    Override default values to jql (created=now()) and download-dir (./downloads) if necessary.")
         click.echo("---")
 
         auth = (userid, password)
 
         #jira_search_rest_url = base_url + "/rest/api/2/search?" + urllib.urlencode(jql) +"&fields=attachment"
-        jira_search_rest_url = base_url + "/rest/api/2/search?jql=" + requests.utils.quote(jql) +"&fields=attachment"
+        jira_search_rest_url = rest_api_base_url + "/rest/api/2/search?jql=" + requests.utils.quote(jql) +"&fields=attachment"
 
         #click.echo(jira_search_rest_url)
 
@@ -206,9 +207,9 @@ class JIRABrowser:
 
         # Get last successful SYNC time information. Example: Last synchronised at 7/16/15 9:52 AM (took 25s)
         try:
-            ldap_sync_info_element = browser.find_element_by_class_name('sync-info')
+            ldap_sync_info_element = browser.find_element(By.CLASS_NAME, 'sync-info')
 
-            ldap_sync_status_string_aray = browser.find_element_by_class_name('sync-info').text.strip().split()
+            ldap_sync_status_string_aray = browser.find_element(By.CLASS_NAME, 'sync-info').text.strip().split()
             last_successful_sync_status_time = '%s %s %s' % (ldap_sync_status_string_aray[3], ldap_sync_status_string_aray[4], ldap_sync_status_string_aray[5])
             click.echo('Last Successful Sync Status Time: %s' % last_successful_sync_status_time)
 
@@ -223,9 +224,9 @@ class JIRABrowser:
             if hours > ldap_sync_threshold_limit:
                 click.echo("Something is wrong with LDAP sync process. Please verify at your earliest your convenience.")
 
-        except NoSuchElementException, e:
+        except NoSuchElementException as e:
             click.echo('Looks like you are not using LDAP or Active Directory! Nothing much to do here...')
-        except Exception,e:
+        except Exception as e:
             click.echo(e)
 
     def convert_timedelta(self, duration):
@@ -411,6 +412,7 @@ class WikiBrowser:
 #"Chrome" is only supported browser as of now. To use ACL in cronjobs, you need to use Chrome with headless settings.
 @click.option('--browser-name', type=click.Choice(['Chrome']), default='Chrome', help='Default: ->Chrome<-')
 @click.option('--base-url', prompt='Enter Base URL for Atlassian application' )
+@click.option('--rest-api-base-url', prompt='Enter REST API Base URL for Atlassian application (usually same as BASE URL)' )
 @click.option('--userid', prompt='Enter Administrator Userid')
 @click.option('--password', prompt='Enter your credentials', hide_input=True, confirmation_prompt=True)
 @click.option('--action', '-a', multiple=True,
@@ -426,7 +428,7 @@ class WikiBrowser:
 @click.option('--download-dir', default='./downloads', help='Enter complete path for a directory where you want attachments to be downloaded. ->Default Download Directory=./downloads<-, Used in Function: get_jira_attachments')
 @click.option('--chrome-driver-location', prompt='Enter complete path for Chrome Driver', help="Make sure you have downloaded Chrome Driver from http://chromedriver.chromium.org/downloads")
 @click.option('--wiki-global-color-scheme-file', default='wiki_global_custom_colour_scheme.default', help='Provide name of global color scheme config file for Wiki ->Default config file = wiki_global_custom_colour_scheme.default<-')
-def start(app_type, app_name, browser_name, base_url, userid,
+def start(app_type, app_name, browser_name, base_url, rest_api_base_url, userid,
           password, action, mail_threshold_limit, ldap_sync_threshold_limit,
           jql, download_dir, chrome_driver_location, wiki_global_color_scheme_file):
     """
@@ -442,11 +444,16 @@ def start(app_type, app_name, browser_name, base_url, userid,
     click.echo('Automating application located at %s' % base_url)
     click.echo()
 
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--window-size=1366x768")    
-    chrome_driver = chrome_driver_location
-    web_driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=chrome_driver)
+    #chrome_options = Options()
+    #chrome_options.add_argument("--headless")
+    #chrome_options.add_argument("--window-size=1366x768")    
+    #chrome_driver = chrome_driver_location
+    #web_driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=chrome_driver)
+
+    options = Options()
+    options.page_load_strategy = 'normal'
+    #options.headless = True
+    web_driver = webdriver.Chrome(options=options)
 
     if app_name == 'Confluence':
 
@@ -477,7 +484,7 @@ def start(app_type, app_name, browser_name, base_url, userid,
         for act in action:
             click.echo('Executing Jira command: %s' % act)
             if act == 'disable_project_notification_schemes':
-                jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, userid, password)
+                jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, rest_api_base_url, userid, password)
 
             if act == 'check_jira_mail_queue_status':
                 jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, mail_threshold_limit)
@@ -486,7 +493,7 @@ def start(app_type, app_name, browser_name, base_url, userid,
                 jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, ldap_sync_threshold_limit)
 
             if act == 'get_jira_attachments':
-                jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, userid, password, jql, download_dir)
+                jira_browser.command_dictionary[act](jira_browser, browser, new_base_url, rest_api_base_url, userid, password, jql, download_dir)
 
             click.echo()
 
