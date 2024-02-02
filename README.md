@@ -25,11 +25,34 @@ _(--app-name = Confluence)_
 * Update general configuration **--action = update_general_configuration**
 
 # Usage instructions
+## Usage instructions of Jupyter Notebook (atlassian_command_line.ipynb)
+* This notebook is updated to make sure all functionality that I earlier worked on for 2015 Codegist works on Python 3 too.
+* I also realized that in my new company, I can't run it as a command line because of Single Sign On integration and having to do Fast Pass such as finger scan.
+* Being lazy, I've make the module work as Jupyter Notebook.
+* Make sure you have config/ available in your repo.
+* .env.stage, .env.dev etc environment files are available with information such as APP_URL, REST_APP_URL and BEARER_TOKEN
+*  Also make sure you have environment files available. Below is one such example
+```
+* ❯ cat .env.stage
+* APP_URL=<Base Jira URL>
+* REST_API_APP_URL=<This can be same as APP_URL otherwise different REST API END Point needs to be mentioned>
+* BEARER_TOKEN=<enter your token aka PAT>
+```
+* Make sure you have virtual environment created.
+* TO DO: add requirements.txt so that all libaries can be installed by user.
+* I use Selenium | https://www.selenium.dev/selenium/docs/api/py/api.html
+* Click, dotenv and requests library.
+* One last thing to do is setting up the environment so that correct files are picked.
+** For that you need to setup env_type variable after you run the Jupyter Notebook environment (jupyter lab)
+* Run first three cells as mentioned in the documentation for these cells.
+* Rest of the cells shows how you can perform four operations like LDAP Sync Status, Mail Queue Status check, Global Look & Feel update and Disabling all projects notification schemes.
+* Hope that works for you. Let me know how it goes!
+#
 ## How to use this Add On
 * Clone source from [Atlassian Command Line](https://github.com/rkadam/atlassian_command_line) git repository
 * Install WebDriver for Chrome [ChromeDriver](http://chromedriver.chromium.org/downloads)
 * Install [Virtual Environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
-* create virtual environment for python 2.7+ -> _virtualenv -p /usr/bin/python2.7 venv_
+* create virtual environment for python 3+ -> _virtualenv -p /usr/bin/python2.7 venv_
 * Install "Atlassian Command Line" as a python module -> _pip install --editable ._
 * _Run_ **Atlassian Command Line** from command line as follows:
 
