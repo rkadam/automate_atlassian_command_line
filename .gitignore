@@ -15,4 +15,6 @@ downloads/
 .env.*
 debug_commands.ipynb
 
+disabled_notification_schemes_status.txt
+
 .ipynb_checkpoints/
