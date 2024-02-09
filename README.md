@@ -1,4 +1,5 @@
 # Automate Atlassian from Command Line (ACL)
+Please refer to branch *python-3.x-compatible-up-to-date-branch* as it has latest content!
 Entry to _Atlassian Codegeist Hackathon 2015_: http://devpost.com/software/atlassian-command-line
 
 <img width="817" alt="screen shot 2015-10-24 at 10 59 58 pm" src="./acl-2018-screenshot.png">
